@@ -1,6 +1,6 @@
-/* Neuroport — visual inspirado na HUD do celular do jogo:
-   vermelho-salmão sobre preto, ciano para destaque, cantos chanfrados,
-   texto em caixa alta com espaçamento, linhas finas e scanlines. */
+/* Neuroport — inspired by the in-game phone HUD:
+   salmon red on black, cyan accents, chamfered corners,
+   spaced uppercase text, thin lines and scanlines. */
 
 :root {
   --bg: #07080c;
@@ -49,7 +49,7 @@ svg { width: 20px; height: 20px; flex: none; }
   text-transform: uppercase;
 }
 
-/* ---------- efeitos de tela ---------- */
+/* ---------- Screen effects ---------- */
 .fx-scan {
   pointer-events: none; position: fixed; inset: 0; z-index: 100;
   background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.22) 2px 3px);
@@ -60,14 +60,14 @@ svg { width: 20px; height: 20px; flex: none; }
   background: radial-gradient(130% 100% at 50% 40%, transparent 55%, rgba(0,0,0,.65));
 }
 
-/* ---------- moldura chanfrada ---------- */
+/* ---------- Chamfered frame ---------- */
 .frame {
   position: relative;
   background: linear-gradient(160deg, rgba(255,97,88,.08), rgba(255,97,88,.02) 60%), var(--bg-2);
   clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
 }
 .frame::before {
-  /* borda de 1px que acompanha o chanfro */
+  /* 1px border following the chamfered edge. */
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background: var(--red-line);
   clip-path: polygon(
@@ -77,7 +77,7 @@ svg { width: 20px; height: 20px; flex: none; }
   );
 }
 
-/* ---------- botões ---------- */
+/* ---------- Buttons ---------- */
 .btn {
   --c: var(--red);
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
@@ -98,7 +98,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .btn:disabled { opacity: .35; cursor: default; }
 .btn-wide { width: 100%; }
 
-/* ---------- pareamento ---------- */
+/* ---------- Pairing ---------- */
 .screen { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; }
 .pair-box { width: min(420px, 100%); padding: 28px 22px; }
 .pair-title { margin: 6px 0 4px; font-size: 42px; font-weight: 700; letter-spacing: .22em; color: var(--red); text-shadow: 0 0 18px rgba(255,97,88,.45); }
@@ -162,7 +162,7 @@ svg { width: 20px; height: 20px; flex: none; }
   clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
 }
 
-/* Painéis */
+/* Panels */
 .panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .panel-head {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -248,7 +248,7 @@ svg { width: 20px; height: 20px; flex: none; }
 
 .action-bar { padding: 10px 0 calc(var(--safe-b) + 14px); border-top: 1px solid var(--red-line); }
 
-/* Folha do contato */
+/* Contact sheet */
 .sheet-wrap {
   position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center;
   background: rgba(3,4,7,.7); backdrop-filter: blur(2px);
@@ -316,7 +316,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .holo.is-active .holo-eq i:nth-child(5n+2) { animation-duration: .75s; }
 #holo-hangup { min-width: 220px; }
 
-/* Veículo a caminho */
+/* Vehicle en route */
 .summon {
   position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 16px;
   background: rgba(3,4,7,.82); animation: fade .15s both;
@@ -335,7 +335,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .chev i:nth-child(4) { animation-delay: .36s; }
 .chev i:nth-child(5) { animation-delay: .48s; }
 
-/* Sem sinal */
+/* No signal */
 .offline {
   position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px;
   background: rgba(5,6,10,.93);
@@ -351,7 +351,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .glitch::before { color: var(--cyan); transform: translate(-2px, 0); clip-path: inset(0 0 60% 0); animation: glitch-a 2.4s infinite steps(1); opacity: .8; }
 .glitch::after { color: var(--red-hi); transform: translate(2px, 0); clip-path: inset(55% 0 0 0); animation: glitch-b 1.9s infinite steps(1); }
 
-/* Toasts (notificação do jogo) */
+/* Toasts (in-game notifications) */
 .toasts {
   position: fixed; left: 0; right: 0; top: calc(var(--safe-t) + 10px); z-index: 60;
   display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; padding: 0 16px;
@@ -368,7 +368,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .toast-msg { font-size: 17px; font-weight: 600; letter-spacing: .05em; color: #f3d2cf; }
 .toast.out { animation: toast-out .25s both; }
 
-/* ---------- animações ---------- */
+/* ---------- Animations ---------- */
 @keyframes blink { 50% { opacity: .15; } }
 @keyframes fade { from { opacity: 0; } }
 @keyframes sheet-up { from { transform: translateY(30px); opacity: 0; } }
@@ -395,7 +395,7 @@ svg { width: 20px; height: 20px; flex: none; }
   #app { padding-top: 28px; }
 }
 
-/* ---------- comuns (Quick Gig / Mapa) ---------- */
+/* ---------- Shared components (Quick Gig / Map) ---------- */
 .btn-sm { min-height: 38px; padding: 0 14px; font-size: 14px; gap: 8px; }
 .btn-sm svg { width: 16px; height: 16px; }
 .cat-dot {
@@ -471,7 +471,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .poi-arrow svg { width: 16px; height: 16px; }
 .row.poi-row:active .cat-dot { background: var(--bg); box-shadow: none; }
 
-/* ---------- Mapa ---------- */
+/* ---------- Map ---------- */
 #panel-map { padding-bottom: calc(var(--safe-b) + 14px); position: relative; }
 .map-wrap { flex: 1; min-height: 0; position: relative; --cut: 16px; background: #05060a; }
 #map { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
@@ -509,7 +509,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .tabs { gap: 2px; }
 .tab { font-size: 10px; letter-spacing: .1em; }
 
-/* ---------- mapa: filtros e detalhes ---------- */
+/* ---------- Map: filters and details ---------- */
 .map-hud.tr { display: flex; flex-direction: row; align-items: center; gap: 6px; }
 .map-btn-filter { display: flex; gap: 6px; align-items: center; }
 .map-btn-filter svg { width: 15px; height: 15px; }
@@ -556,7 +556,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .fcount { font: 400 12px var(--mono); color: var(--red-dim); min-width: 28px; text-align: right; padding: 1px 4px; border: 1px solid var(--red-line); }
 .funavail { font-size: 13px; margin: 4px 2px 0; line-height: 1.35; }
 
-/* ---------- diário ---------- */
+/* ---------- Journal ---------- */
 .tracked-card {
   position: relative; padding: 12px 14px; margin-bottom: 6px; cursor: pointer;
   background: linear-gradient(120deg, rgba(247,224,90,.14), rgba(247,224,90,.02) 70%), var(--bg-2);
@@ -583,7 +583,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .tab { font-size: 9px; letter-spacing: .08em; }
 .tab svg { width: 19px; height: 19px; }
 
-/* ---------- HUD: botão modo carro ---------- */
+/* ---------- HUD: Car Mode button ---------- */
 .hud-right { display: flex; align-items: center; gap: 10px; }
 .car-chip {
   display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px;
@@ -592,7 +592,7 @@ svg { width: 20px; height: 20px; flex: none; }
 }
 .car-chip svg { width: 16px; height: 16px; }
 
-/* ---------- mapa 3D ---------- */
+/* ---------- 3D map ---------- */
 .map3d-host { position: absolute; inset: 0; }
 .map3d-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .map3d-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
@@ -617,7 +617,7 @@ svg { width: 20px; height: 20px; flex: none; }
 }
 .map-route i { width: 8px; height: 8px; background: var(--cyan); transform: rotate(45deg); }
 
-/* ---------- rádio ---------- */
+/* ---------- Radio ---------- */
 .radio { padding-bottom: 8px; }
 .np {
   position: relative; overflow: hidden; padding: 18px 16px 14px;
@@ -649,7 +649,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .st:active { background: var(--red-faint); }
 .st.is-cur { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-faint); }
 
-/* ---------- modo carro ---------- */
+/* ---------- Car Mode ---------- */
 .car {
   position: fixed; inset: 0; z-index: 35; display: flex; flex-direction: column;
   padding: calc(var(--safe-t) + 10px) 12px calc(var(--safe-b) + 10px);
@@ -708,7 +708,7 @@ body.in-car #app > .hud, body.in-car #app > .tabs { visibility: hidden; }
 .qd-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; letter-spacing: .04em; color: #f3e3e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qd-dist { font: 400 12px var(--mono); color: var(--text-dim); }
 
-/* pintura */
+/* Paint */
 .swatches { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin: 8px 0 10px; }
 .sw { aspect-ratio: 1; background: var(--c); border: 1px solid rgba(255,255,255,.12); position: relative; }
 .sw.is-sel { outline: 2px solid var(--cyan); outline-offset: 2px; }
@@ -724,7 +724,7 @@ body.in-car #app > .hud, body.in-car #app > .tabs { visibility: hidden; }
 .slider i { width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
 .horn { margin-top: 2px; }
 
-/* paisagem: celular preso no painel do carro */
+/* Landscape: phone mounted on the car dashboard */
 @media (orientation: landscape) and (max-height: 600px) {
   .car { padding: 8px calc(env(safe-area-inset-right, 0px) + 10px) 8px calc(env(safe-area-inset-left, 0px) + 10px); }
   .car-top { padding-bottom: 6px; }
@@ -735,7 +735,7 @@ body.in-car #app > .hud, body.in-car #app > .tabs { visibility: hidden; }
 }
 
 
-/* ---------- chamada recebida ---------- */
+/* ---------- Incoming call ---------- */
 .holo { z-index: 38; }
 .holo-incoming { display: flex; gap: 14px; margin-top: 4px; }
 .holo-big { min-width: 150px; min-height: 58px; font-size: 18px; }
@@ -749,7 +749,7 @@ body.in-car #app > .hud, body.in-car #app > .tabs { visibility: hidden; }
 .holo.is-incoming .holo-portrait { animation: holo-flicker 4s infinite, ring-shake .5s ease-in-out infinite; }
 @keyframes ring-shake { 0%, 100% { transform: none; } 25% { transform: translateX(-3px) rotate(-1deg); } 75% { transform: translateX(3px) rotate(1deg); } }
 
-/* ---------- avatares do jogo ---------- */
+/* ---------- Game avatars ---------- */
 .avatar, .holo-portrait { position: relative; overflow: hidden; }
 .av-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .holo-portrait .av-img { filter: saturate(1.1) contrast(1.05); }
@@ -757,7 +757,7 @@ body.in-car #app > .hud, body.in-car #app > .tabs { visibility: hidden; }
 .holo-portrait::after { z-index: 2; }
 .row:active .av-img, .row.is-sel .av-img { opacity: .85; }
 
-/* ---------- navegar até a missão ativa ---------- */
+/* ---------- Navigate to the active job ---------- */
 .quest-drive {
   width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; margin: 0 0 10px; text-align: left;
   background: linear-gradient(120deg, rgba(247,224,90,.16), rgba(247,224,90,.03) 70%), var(--bg-2);
@@ -773,5 +773,5 @@ body.in-car #app > .hud, body.in-car #app > .tabs { visibility: hidden; }
 .quest-drive-main b { font-size: 17px; letter-spacing: .06em; text-transform: uppercase; color: #fff6c4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .quest-drive-main small { font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ícone do jogo no filtro (máscara pintada na cor do filtro) */
+/* Game icon in the filter (mask tinted with the filter color) */
 .fshape.ficon { width: 20px; height: 20px; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; transform: none; }

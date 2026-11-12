@@ -1,8 +1,8 @@
-// Neuroport — rádio, modo carro ("Holo Auto") e ligação com o mapa 3D.
-// Usa as funções globais do app.js: $, game, cmd, t, toast, buzz, esc, fmtDist, ...
+// Neuroport — radio, Car Mode ("Holo Auto") and 3D map integration.
+// Uses global functions from app.js: $, game, cmd, t, toast, buzz, esc, fmtDist, ...
 'use strict';
 
-// ---------- mapa 3D ----------
+// ---------- 3D map ----------
 const M3 = () => (window.Map3D && Map3D.ready ? Map3D : null);
 let phoneView = { headingUp: false, elev: 89.5, dist: 900 };
 let mapHost = 'phone';   // 'phone' | 'car'
@@ -13,9 +13,9 @@ function mountMap(where) {
   mapHost = where;
   if (where === 'car') {
     m.mount($('car-map'));
-    // como o minimapa do jogo: visto de cima, sem prédios, girando com o carro
+    // Like the in-game minimap: top-down, no buildings, rotating with the car.
     m.setFlat(true);
-    m.setMode({ headingUp: true, elev: 89.5, dist: 380, follow: true });
+    m.setMode({ headingUp: true, elev: 89.5, dist: isDesktopMode() ? 520 : 380, follow: true });
     m.setVisible(true);
   } else {
     m.mount($('map3d-host'));
@@ -25,14 +25,14 @@ function mountMap(where) {
   }
 }
 
-// Objetivo da missão rastreada: o marcador de missão cuja distância bate com a
-// distância que o diário do jogo informa para ela.
+// Tracked job objective: the job marker whose distance matches the distance
+// reported for it by the in-game journal.
 function questTarget() {
   const j = game().journal || {};
   const q = (j.quests || []).find((x) => x.id === j.tracked);
   if (!q) return null;
   let best = null, bd = Infinity;
-  // marcador ligado à missão rastreada (o mod liga cada marcador ao objetivo ativo do diário)
+  // Marker linked to the tracked job (the mod links each marker to an active journal objective).
   for (const p of allPois(true)) {
     if (p.q !== q.id) continue;
     const d = distTo(p);
@@ -85,11 +85,11 @@ function map3dHud() {
 
 window.addEventListener('map3d-ready', () => {
   $('map-loading').hidden = true;
-  $('map').style.display = 'none';           // radar 2D vira só reserva
+  $('map').style.display = 'none';           // The 2D radar is now only a fallback.
   const m = Map3D;
   m.on('pick', (res) => {
     if (mapHost === 'car') return carPick(res);
-    // com o detalhe aberto, tocar fora de um ícone só fecha o detalhe
+    // When details are open, tapping outside an icon closes only the details.
     if (!$('map-pop').hidden && !res.poi) { closePop(); m.select(null); return; }
     m.select(res.poi || null);
     onMapPick(res);
@@ -100,7 +100,7 @@ window.addEventListener('map3d-ready', () => {
     $('map').style.display = '';          // radar 2D enquanto o 3D se recupera
     toast(t('mapLost'), false);
   });
-  // recarrega a página para reconstruir o mapa do zero (estado volta do servidor)
+  // Reload the page to rebuild the map from scratch (state is restored by the server).
   m.on('restored', () => setTimeout(() => location.reload(), 300));
   mountMap(carVisible ? 'car' : 'phone');
   map3dUpdate();
@@ -111,7 +111,7 @@ window.addEventListener('map3d-error', () => {
 });
 $('map-center').addEventListener('click', () => { const m = M3(); if (m) { m.recenter(); buzz(5); } });
 
-// fechar o detalhe também limpa a seleção do 3D
+// Closing the details also clears the 3D selection.
 $('pop-cancel').addEventListener('click', () => { const m = M3(); if (m) m.select(null); });
 
 function onTabChange(name) {
@@ -120,7 +120,7 @@ function onTabChange(name) {
   if (name === 'radio') renderRadio($('radio-phone'), true);
 }
 
-// ---------- rádio ----------
+// ---------- Radio ----------
 let lastRadioKey = {};
 function renderRadio(root, force) {
   const g = game();
@@ -167,10 +167,10 @@ function radioClick(e) {
 $('radio-phone').addEventListener('click', radioClick);
 $('radio-car').addEventListener('click', radioClick);
 
-// ---------- modo carro ----------
+// ---------- Car Mode ----------
 let carVisible = false;
 let carDismissed = false;
-let carManual = false;     // aberto pelo botão (modo carro automático desligado)   // o usuário saiu do modo carro nesta viagem
+let carManual = false;     // Opened manually (automatic Car Mode is disabled).
 let wasInside = false;
 let carTab = 'nav';
 
@@ -187,10 +187,10 @@ function renderExtras() {
   const g = game();
   const veh = g.vehicle || {};
   const inside = !!veh.inside;
-  if (inside && !wasInside) { carDismissed = false; carManual = false; }   // entrou num carro: liga o modo carro
+  if (inside && !wasInside) { carDismissed = false; carManual = false; }   // Entered a vehicle: enable Car Mode.
   wasInside = inside;
   const auto = typeof prefs === 'undefined' || prefs.autoCar;
-  // aberto à mão (widget/chip) vale até fora do carro; o automático só dentro do carro
+  // Manually opened mode (widget/chip) stays open outside the car; automatic mode runs only in a vehicle.
   const want = !carDismissed && (carManual || (inside && auto));
   $('car-chip').hidden = !(inside && !want);
   $('w-car').classList.toggle('on', inside);
@@ -221,7 +221,7 @@ function renderCar(force) {
   $('ad-start').hidden = !!veh.autodrive || !g.waypoint;
   renderQuestDrive();
 
-  // barra de navegação sobre o mapa
+  // Navigation bar over the map.
   const wp = destination();
   const m = M3();
   const info = m && m.routeInfo();
@@ -246,7 +246,7 @@ function fmtEta(sec) {
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
 }
 
-// destinos rápidos: o mais próximo de cada tipo útil ao volante
+// Quick destinations: the nearest location for each useful driving category.
 const QUICK = ['gig', 'ncpd', 'side', 'tarot', 'ripperdoc', 'fast_travel', 'weapon_shop', 'vehicle_sale'];
 let lastQuickKey = '';
 function renderQuick(force) {
@@ -309,7 +309,7 @@ $('ad-quest').addEventListener('click', () => {
 $('ad-stop').addEventListener('click', () => { buzz(20); cmd('ad_stop'); });
 $('horn').addEventListener('click', () => { buzz(40); cmd('horn'); });
 
-// ---------- pintura ----------
+// ---------- Paint ----------
 const SWATCHES = [
   '#f2f3f5', '#15161b', '#8a8f9c', '#ff2e3c', '#ff6158', '#ff9f43', '#f7e05a', '#b6ff3b',
   '#2bfdb1', '#5ef6ff', '#2f6bff', '#7a3cff', '#ff4fd8', '#6b3a1f', '#c9a227', '#2b4d3a',
@@ -348,7 +348,7 @@ $('paint-apply').addEventListener('click', () => {
 $('paint-reset').addEventListener('click', () => { buzz(10); cmd('color_reset'); });
 paintPreview();
 
-// ---------- respostas do jogo ----------
+// ---------- Game responses ----------
 function onAckExtra(a, action) {
   if (!['radio_on', 'radio_off', 'radio_set', 'radio_next', 'radio_prev', 'radio_vol', 'ad_start', 'ad_quest', 'ad_stop', 'color', 'color_reset', 'horn'].includes(action)) return false;
   if (!a.ok) { buzz([40, 60, 40]); toast(errText(a.msg), false); return true; }

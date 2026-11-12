@@ -1,6 +1,6 @@
-// Neuroport OS — a "casca" de celular: barra de status, tela inicial, apps,
-// navegação (voltar do Android), tela cheia, ajustes, mensagens, internet,
-// câmera e legendas na chamada. Usa as funções globais de app.js/car.js.
+// Neuroport OS — the phone interface: status bar, home screen, apps,
+// Android-style navigation, fullscreen mode, settings, messages, web,
+// camera and call subtitles. Uses the global functions from app.js and car.js.
 'use strict';
 
 const OS = {
@@ -21,23 +21,23 @@ const OS = {
   dock: ['messages', 'vehicles', 'map', 'photo'],
 };
 
-// ---------- preferências do celular ----------
+// ---------- Phone preferences ----------
 const PREF_KEY = 'neuroport.prefs';
 const prefs = Object.assign({ autoCar: true, ring: true, vibrate: true, mapMode: 'active', nav: 'buttons', navSide: 'left' },
   (() => { try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch { return {}; } })());
 function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* ok */ } }
 
-// marcadores: só os ativos no jogo, ou o "mapa interativo" (tudo)
-// strict: ignora o modo interativo (Quick Gig e navegação só usam o que está ativo no jogo)
+// Markers: only those currently active in the game, or the interactive map (all).
+// Strict mode ignores the interactive map (Quick Gig and navigation use only active in-game markers).
 function poiActive(p, strict) {
   if (prefs.mapMode === 'all' && !strict) return true;
   if (p.f === 'quest_obj' || p.f === 'quest_other') return true;
-  // gigs ainda não descobertos aparecem no mapa do jogo (o ícone da caixa com "!"): só os concluídos saem
+  // Undiscovered gigs remain on the in-game map (the box with an exclamation mark); only completed gigs disappear.
   if (p.ph === 'c' || (p.ph === 'u' && p.cat !== 'gig')) return false;
   if (p.vis === false || p.act === false) return false;
-  // marcador de missão que não bate com nenhum objetivo ativo do diário
+  // Mission marker that does not match an active journal objective.
   if (p.ql === false) return false;
-  // ocorrências da NCPD (agressão, crime organizado...) que o jogo não mostra mais: só bem perto
+  // NCPD activities (assault, organized crime, etc.) that the game no longer displays except at close range.
   if (/^(GangWatch|Outpost)$/.test(p.v) || (p.v === 'HiddenStash' && !p.q)) {
     const me = (typeof game === 'function' && game().pos) || null;
     if (!me || me.x == null || Math.hypot(p.x - me.x, p.y - me.y) > 200) return false;
@@ -45,7 +45,7 @@ function poiActive(p, strict) {
   return true;
 }
 
-// ---------- tela cheia ----------
+// ---------- Fullscreen ----------
 function canFullscreen() { return !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen); }
 function isFullscreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
 function enterFullscreen() {
@@ -58,7 +58,7 @@ function exitFullscreen() {
   const fn = document.exitFullscreen || document.webkitExitFullscreen;
   if (fn && isFullscreen()) try { fn.call(document); } catch { /* ok */ }
 }
-// tela cheia só quando o usuário pede (botão na barra de status ou em Ajustes)
+// Enter fullscreen only when requested (status-bar button or Settings).
 function toggleFullscreen() { isFullscreen() ? exitFullscreen() : enterFullscreen(); }
 function renderFsButton() {
   const b = $('sb-fs');
@@ -71,8 +71,98 @@ document.addEventListener('webkitfullscreenchange', () => { renderFsButton(); re
 $('sb-fs').addEventListener('click', (e) => { e.stopPropagation(); buzz(10); toggleFullscreen(); });
 renderFsButton();
 
-// ---------- navegação ----------
+// ---------- Navigation ----------
 let currentApp = 'home';
+
+// Desktop mode requires a wide viewport and at least one precise pointer.
+// any-pointer includes a mouse or touchpad on touchscreen laptops without treating
+// a phone in landscape orientation as a desktop.
+// Update the layout when the window is resized.
+const desktopMedia = window.matchMedia('(min-width: 900px) and (any-pointer: fine)');
+let desktopMode = false;
+let deviceModeReady = false;
+function isDesktopMode() { return desktopMode; }
+
+const desktopNavOrder = [
+  ['messages', 'map', 'gigs', 'journal', 'vehicles', 'radio'],
+  ['internet', 'camera', 'shards', 'status', 'photo', 'settings'],
+];
+function renderDesktopNav() {
+  const host = $('desktop-nav-links');
+  if (!host) return;
+  // Rebuild navigation only when the language changes; frequent state updates
+  // update badges without replacing the buttons.
+  if (host.dataset.lang !== LANG) {
+    host.innerHTML = desktopNavOrder.map((group, groupIndex) => `
+      <div class="desktop-nav-group${groupIndex ? ' secondary' : ''}">
+        ${group.map((id) => {
+          const app = OS.apps.find((x) => x.id === id);
+          if (!app) return '';
+          const icon = app.img
+            ? `<img src="${esc(app.img)}" alt="">`
+            : `<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${app.icon}"></use></svg>`;
+          return `<button class="desktop-link" type="button" data-desktop-app="${app.id}" style="--app-color:${app.color}" title="${esc(t(app.label))}">
+            <span class="desktop-link-icon">${icon}</span><span class="desktop-link-name">${esc(t(app.label))}</span>
+            ${id === 'messages' ? '<b class="desktop-link-badge" data-desktop-unread hidden></b>' : ''}
+          </button>`;
+        }).join('')}
+      </div>`).join('');
+    host.dataset.lang = LANG;
+  }
+  const unread = (game().contacts || []).reduce((n, c) => n + (c.unread || 0), 0);
+  const badge = host.querySelector('[data-desktop-unread]');
+  if (badge) {
+    badge.hidden = !unread;
+    badge.textContent = unread > 99 ? '99+' : String(unread || '');
+  }
+  updateDesktopNavActive();
+}
+function updateDesktopNavActive() {
+  const home = $('desktop-home');
+  if (home) home.classList.toggle('is-active', currentApp === 'home');
+  for (const b of document.querySelectorAll('[data-desktop-app]')) {
+    const active = b.dataset.desktopApp === currentApp;
+    b.classList.toggle('is-active', active);
+    if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  }
+}
+function applyDeviceMode() {
+  const next = desktopMedia.matches;
+  if (deviceModeReady && next === desktopMode) return;
+  desktopMode = next;
+  deviceModeReady = true;
+  document.body.classList.toggle('is-desktop', desktopMode);
+  document.body.classList.toggle('is-mobile', !desktopMode);
+  $('desktop-sidebar').hidden = !desktopMode;
+  $('statusbar').hidden = desktopMode;
+  $('navbar').hidden = desktopMode;
+  $('homebar').hidden = desktopMode;
+  $('appbar').hidden = desktopMode ? false : currentApp === 'home';
+  $('appbar-back').hidden = desktopMode && !((currentApp === 'messages' && chatOpen) || (currentApp === 'shards' && shardOpen));
+  if (desktopMode && currentApp === 'home') $('appbar-title').textContent = 'NEUROPORT';
+  else if (desktopMode && !chatOpen) {
+    const app = OS.apps.find((x) => x.id === currentApp);
+    $('appbar-title').textContent = app ? t(app.label) : 'NEUROPORT';
+  }
+  renderDesktopNav();
+  if (typeof updateShardPane === 'function') updateShardPane();
+  if (typeof renderCommTabs === 'function' && currentApp === 'messages') {
+    renderCommTabs();
+    if (chatOpen && desktopMode) renderChat(true);
+  }
+  // If the layout changes while Holo Auto is open, also reapply the camera distance
+  // for desktop or mobile (the canvas resizes itself).
+  if (typeof carVisible !== 'undefined' && carVisible && typeof mountMap === 'function') mountMap('car');
+  if (typeof renderHome === 'function') renderHome(true);
+}
+$('desktop-home').addEventListener('click', () => goHome());
+$('desktop-nav-links').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-desktop-app]');
+  if (b) launchApp(b.dataset.desktopApp);
+});
+desktopMedia.addEventListener ? desktopMedia.addEventListener('change', applyDeviceMode) : desktopMedia.addListener(applyDeviceMode);
+window.addEventListener('resize', applyDeviceMode);
+
 function openApp(id, opts = {}) {
   if (id === 'home') return goHome();
   if (id === 'contacts') { commTab = 'contacts'; id = 'messages'; }
@@ -80,9 +170,15 @@ function openApp(id, opts = {}) {
   document.body.classList.add('app-open');
   $('panel-home').hidden = true;
   $('appbar').hidden = false;
-  $('appbar-title').textContent = app ? t(app.label) : '';
+  $('appbar-back').hidden = isDesktopMode() && !((id === 'messages' && chatOpen) || (id === 'shards' && shardOpen));
+  if (id === 'messages' && chatOpen) {
+    const contact = contactById(chatOpen) || {};
+    $('appbar-title').innerHTML = `<span class="chat-head"><span class="avatar avatar-sm">${avatarHtml(contact)}</span><span>${esc(contact.name || t('appMessages'))}</span></span>`;
+  } else $('appbar-title').textContent = app ? t(app.label) : '';
   $('appbar-action').innerHTML = '';
   currentApp = id;
+  if (id === 'shards' && typeof updateShardPane === 'function') updateShardPane();
+  updateDesktopNavActive();
   recentApps = [id, ...recentApps.filter((x) => x !== id)].slice(0, 6);
   closeRecents();
   switchTab(id);
@@ -99,15 +195,20 @@ function goHome(fromHistory) {
   document.body.classList.remove('app-open');
   for (const p of document.querySelectorAll('#app > .panel')) p.hidden = true;
   $('panel-home').hidden = false;
-  $('appbar').hidden = true;
+  $('appbar').hidden = !isDesktopMode();
+  $('appbar-back').hidden = isDesktopMode();
+  $('appbar-title').textContent = 'NEUROPORT';
+  $('appbar-action').innerHTML = '';
+  updateDesktopNavActive();
   tab = 'home';
   HoloMap.setVisible(false);
   if (window.Map3D && Map3D.ready && typeof mapHost !== 'undefined' && mapHost === 'phone') Map3D.setVisible(false);
   if (!fromHistory && location.hash) history.pushState({ app: 'home' }, '', location.pathname + location.search);
   renderHome(true);
+  requestAnimationFrame(() => applyWallpaper());
 }
 window.addEventListener('popstate', (e) => {
-  // botão voltar do Android: fecha a conversa, depois o app
+  // Android Back button: close the conversation first, then the app.
   if (chatOpen) { closeChat(true); history.pushState({ app: 'messages' }, '', '#messages'); return; }
   if (shardOpen) { closeShard(true); return; }
   const id = (e.state && e.state.app) || 'home';
@@ -122,7 +223,7 @@ function navBack() {
 }
 $('appbar-back').addEventListener('click', () => { buzz(6); navBack(); });
 
-// ---------- navegação: botões ou gestos (ajustes) ----------
+// ---------- Navigation: buttons or gestures (Settings) ----------
 function applyNav() {
   document.body.classList.toggle('nav-buttons', prefs.nav !== 'gestures');
   document.body.classList.toggle('nav-gestures', prefs.nav === 'gestures');
@@ -137,7 +238,7 @@ $('navbar').addEventListener('click', (e) => {
   else if (a === 'home') goHome();
   else toggleRecents();
 });
-// recentes: os três últimos apps (o atual fica de fora quando há outros)
+// Recent apps: the last three apps (excluding the current app when others are available).
 function toggleRecents() { if ($('recents').hidden) openRecents(); else closeRecents(); }
 function openRecents() {
   const list = recentApps.filter((id) => id !== currentApp).slice(0, 3);
@@ -157,8 +258,8 @@ $('recents').addEventListener('click', (e) => {
   if (b) { buzz(8); openApp(b.dataset.app); return; }
   closeRecents();
 });
-// gestos: deslizar da borda esquerda/direita volta; deslizar para cima da borda de baixo vai
-// para o início; deslizar para cima e segurar abre os recentes
+// Gestures: swipe inward from either side edge to go back; swipe up from the bottom edge to go
+// home; swipe up and hold to open recent apps.
 (() => {
   let g = null;
   const EDGE = 22;
@@ -180,7 +281,7 @@ $('recents').addEventListener('click', (e) => {
 })();
 applyNav();
 
-// gesto: deslizar para cima na barra de baixo volta para a tela inicial
+// Gesture: swipe up from the bottom bar to return to the home screen.
 (() => {
   const bar = $('homebar');
   let y0 = null;
@@ -197,7 +298,7 @@ function onAppOpen(id) {
   if (id === 'messages') renderMessages(true);
 }
 
-// ---------- barra de status ----------
+// ---------- Status bar ----------
 function renderStatus() {
   const g = game();
   const p = g.player || {};
@@ -212,7 +313,7 @@ function renderStatus() {
   $('sb-bat-val').textContent = hp;
 }
 
-// ---------- tela inicial ----------
+// ---------- Home screen ----------
 let lastHomeKey = '';
 function renderHome(force) {
   const g = game();
@@ -234,11 +335,13 @@ function renderHome(force) {
       <span class="ico-tile">${a.img ? `<img class="ico-img" src="${a.img}" alt="">` : `<svg viewBox="0 0 24 24"><use href="#${a.icon}"/></svg>`}${badges[a.id] ? `<b class="ico-badge">${badges[a.id]}</b>` : ''}</span>
       <span class="ico-label">${esc(t(a.label))}</span>
     </button>`;
-  // grade em ordem alfabética (pelo nome no idioma atual); o dock fica fixo
-  // Ajustes fica sempre por último
-  $('home-grid').innerHTML = OS.apps.filter((a) => !OS.dock.includes(a.id))
+  // Alphabetical app grid (using the current language); the dock stays fixed.
+  // Settings is always last.
+  const homeApps = isDesktopMode() ? [...OS.apps] : OS.apps.filter((a) => !OS.dock.includes(a.id));
+  $('home-grid').innerHTML = homeApps
     .sort((x, y) => (x.id === 'settings') - (y.id === 'settings') || t(x.label).localeCompare(t(y.label), LANG)).map(icon).join('');
-  $('home-dock').innerHTML = OS.dock.map((id) => icon(OS.apps.find((a) => a.id === id))).join('');
+  $('home-dock').hidden = isDesktopMode();
+  $('home-dock').innerHTML = isDesktopMode() ? '' : OS.dock.map((id) => icon(OS.apps.find((a) => a.id === id))).join('');
   $('w-quest').hidden = !tq;
   if (tq) {
     $('w-quest-title').textContent = tq.title;
@@ -250,7 +353,7 @@ function renderHome(force) {
   $('w-radio-pp').setAttribute('href', r.on ? '#i-pause' : '#i-play');
   $('w-radio-vol').textContent = r.vol != null ? r.vol + '%' : '';
 }
-// apps que só disparam uma ação no jogo (câmera = modo foto), sem abrir tela
+// Apps that trigger an in-game action without opening a screen (Camera opens photo mode).
 function launchApp(id) {
   const a = OS.apps.find((x) => x.id === id);
   if (a && a.action) {
@@ -281,14 +384,14 @@ $('w-radio').addEventListener('click', (e) => {
 });
 
 // ---------- ajustes ----------
-// fundo de tela: uma foto da galeria (modo foto do jogo) atrás da tela inicial
+// Wallpaper: a photo from the in-game photo-mode gallery behind the home screen.
 function setWallpaper(name) {
   prefs.wallpaper = name || null;
   savePrefs();
   applyWallpaper();
 }
 const wallUrl = (name) => (name && key ? `photo/${encodeURIComponent(name)}?k=${encodeURIComponent(key)}` : null);
-// tamanho real da foto (para enquadrar com zoom): carregado uma vez por foto
+// Actual photo dimensions (for zoom and framing); loaded once per photo.
 const wallNat = new Map();
 function wallSize(url, cb) {
   const n = wallNat.get(url);
@@ -300,7 +403,7 @@ function wallSize(url, cb) {
   img.onload = () => { rec.w = img.naturalWidth; rec.h = img.naturalHeight; for (const f of rec.cbs.splice(0)) f(rec); };
   img.src = url;
 }
-// enquadramento: ponto central (x/y em %) e zoom sobre o "cobrir a tela"
+// Framing: center point (x/y in %) and zoom relative to cover-to-fill sizing.
 const wallFrame = () => Object.assign({ x: 50, y: 50, z: 1 }, (prefs.wallFrame || {})[prefs.wallpaper] || {});
 function layoutWall(el, url, fr, withShade) {
   wallSize(url, (n) => {
@@ -321,7 +424,7 @@ function applyWallpaper() {
 }
 addEventListener('resize', () => applyWallpaper());
 
-// Editor do enquadramento: arrastar move a foto, o controle (ou pinça) dá zoom.
+// Framing editor: drag to move the photo; use the slider or pinch to zoom.
 let weFrame = null, weDrag = null;
 function openWallEdit() {
   const url = wallUrl(prefs.wallpaper);
@@ -352,7 +455,7 @@ function closeWallEdit(save) {
     if (!n || !n.w) return;
     const W = el.clientWidth, H = el.clientHeight;
     const s = Math.max(W / n.w, H / n.h) * weFrame.z;
-    const ox = W - n.w * s, oy = H - n.h * s;   // folga (negativa quando a foto é maior)
+    const ox = W - n.w * s, oy = H - n.h * s;   // Remaining space (negative when the photo is larger).
     if (ox < -1) weFrame.x = Math.min(100, Math.max(0, weFrame.x + (dx / ox) * 100));
     if (oy < -1) weFrame.y = Math.min(100, Math.max(0, weFrame.y + (dy / oy) * 100));
     weApply();
@@ -383,7 +486,7 @@ function closeWallEdit(save) {
   $('we-done').addEventListener('click', () => { buzz(12); closeWallEdit(true); });
 })();
 setTimeout(applyWallpaper, 0);
-// a lista de fotos para escolher nos Ajustes
+// Photo list available in Settings.
 let settingsPhotosAt = 0;
 function settingsPhotos() {
   if (Date.now() - settingsPhotosAt < 15000) return;
@@ -447,7 +550,7 @@ function renderSettings() {
       ${row('forget', t('setForget'), t('setForgetDesc'), false, '<span class="chev-r">›</span>')}
     </div>`;
 }
-// lista do modo imersivo: aparece quando ele é ativado; o botão › resume/expande
+// Immersive-mode list: shown when enabled; the › button collapses or expands it.
 let immOpen = true;
 let immWasOn = null;
 function immLabel(e) {
@@ -467,7 +570,7 @@ $('settings-list').addEventListener('click', (e) => {
     const g = game();
     const hideAll = !(g.immHud || []).every((x) => x.h);
     cmd('imm_all', hideAll ? '1' : '0');
-    for (const x of g.immHud || []) x.h = hideAll || undefined;   // resposta imediata
+    for (const x of g.immHud || []) x.h = hideAll || undefined;   // Immediate response.
     renderSettings();
     return;
   }
@@ -477,7 +580,7 @@ $('settings-list').addEventListener('click', (e) => {
     cmd('imm_toggle', im.dataset.imm);
     const g = game();
     const it = (g.immHud || []).find((x) => x.n === im.dataset.imm);
-    if (it) it.h = !it.h;      // resposta imediata; o jogo confirma no próximo estado
+    if (it) it.h = !it.h;      // Immediate response; the game confirms it in the next state update.
     renderSettings();
     return;
   }
@@ -495,7 +598,7 @@ $('settings-list').addEventListener('click', (e) => {
   renderSettings();
 });
 
-// ---------- mapa: botão "ativos / todos" ----------
+// ---------- Map: Active / All toggle ----------
 function renderMapMode() {
   const lbl = t(prefs.mapMode === 'all' ? 'mapAll' : 'mapActive');
   if ($('map-modeset')) { $('map-modeset-label').textContent = lbl; $('map-modeset').classList.toggle('on', prefs.mapMode === 'all'); }
@@ -514,8 +617,8 @@ function toggleMapMode() {
 if ($('map-modeset')) $('map-modeset').addEventListener('click', toggleMapMode);
 $('car-modeset').addEventListener('click', toggleMapMode);
 
-// ---------- mensagens ----------
-let chatOpen = null;      // id do contato
+// ---------- Messages ----------
+let chatOpen = null;      // Contact ID.
 let lastMsgListKey = '';
 let lastChatKey = '';
 let pendingReply = null;  // { text, at }
@@ -529,20 +632,20 @@ function contactSortKey(c) { return c.t ? c.t.d * 1440 + c.t.h * 60 + c.t.m : -1
 
 function renderMessages(force) {
   if (currentApp !== 'messages') return;
-  if (chatOpen) { renderChat(force); return; }
+  if (chatOpen && !isDesktopMode()) { renderChat(force); return; }
   const g = game();
   renderCommTabs();
-  if (commTab !== 'messages') return;
-  // como no jogo: quem espera resposta e quem tem mensagem nova em cima; as já lidas ficam apagadas
+  if (commTab !== 'messages') { if (chatOpen) renderChat(force); return; }
+  // As in the game, conversations awaiting a reply or with new messages appear first; read ones are dimmed.
   const waiting = (c) => !!(c.unread || (c.reply && !c.last));
   const list = (g.contacts || []).filter((c) => c.messages || c.preview)
     .sort((a, b) => (waiting(b) - waiting(a)) || (contactSortKey(b) - contactSortKey(a)));
   const today = (g.player || {}).day;
   const key = JSON.stringify([list, LANG]);
-  if (!force && key === lastMsgListKey) return;
+  if (!force && key === lastMsgListKey) { if (chatOpen) renderChat(force); return; }
   lastMsgListKey = key;
   const item = (c) => `
-    <li class="conv${c.unread ? ' unread' : ''}${waiting(c) ? '' : ' read'}" data-id="${esc(c.id)}"${c._o ? ` style="opacity:${c._o}"` : ''}>
+    <li class="conv${c.unread ? ' unread' : ''}${waiting(c) ? '' : ' read'}${c.id === chatOpen ? ' is-active' : ''}" data-id="${esc(c.id)}"${c.id === chatOpen ? ' aria-current="true"' : ''}${c._o ? ` style="opacity:${c._o}"` : ''}>
       <div class="avatar">${avatarHtml(c)}</div>
       <div class="conv-main">
         <div class="conv-top"><span class="conv-name">${esc(c.name)}</span><span class="conv-time">${esc(timeLabel(c.t, today))}</span></div>
@@ -550,7 +653,7 @@ function renderMessages(force) {
       </div>
       ${c.unread ? `<span class="conv-badge"><svg viewBox="0 0 24 24"><use href="#i-chat"/></svg></span>` : ''}
     </li>`;
-  // divisor: não lidas / aguardando resposta em cima, lidas embaixo
+  // Divider: unread or awaiting-reply conversations above, read conversations below.
   const fresh = list.filter(waiting), old = list.filter((c) => !waiting(c));
   old.forEach((c, i) => { c._o = Math.max(0.38, 1 - i * 0.07).toFixed(2); });
   const head = (k, n) => `<li class="conv-div"><span>${t(k)}</span><b>${n}</b></li>`;
@@ -558,11 +661,12 @@ function renderMessages(force) {
     ? (fresh.length ? head('msgUnread', fresh.length) + fresh.map(item).join('') : '') +
       (old.length ? head('msgRead', old.length) + old.map(item).join('') : '')
     : `<p class="empty dim">${t('noMessages')}</p>`;
+  if (chatOpen) renderChat(force);
 }
 $('msg-list').addEventListener('click', (e) => { const li = e.target.closest('.conv'); if (li) { buzz(8); openChat(li.dataset.id); } });
 
-// notificação: mensagem nova de um contato (aviso no app + vibração), menos na conversa aberta
-const msgSeen = new Map();   // id -> assinatura (horário + prévia)
+// Notification for a new contact message (in-app alert and vibration), except in the open conversation.
+const msgSeen = new Map();   // ID -> signature (timestamp + preview).
 let msgSeenReady = false;
 function checkNewMessages() {
   const list = game().contacts || [];
@@ -580,8 +684,8 @@ function checkNewMessages() {
     msgToast(c);
   }
 }
-// Notificação no topo (heads-up): desce por cima do que estiver aberto, sem travar nada.
-// Toque abre a conversa; arrastar para cima dispensa; some sozinha em 6 s.
+// Heads-up notification: slides over the current screen without blocking it.
+// Tap to open the conversation, swipe up to dismiss, or wait six seconds for it to disappear.
 function msgToast(c) {
   const box = $('headsup');
   const old = box.querySelector(`[data-c="${CSS.escape(c.id)}"]`);
@@ -610,15 +714,17 @@ function msgToast(c) {
   setTimeout(close, 6000);
 }
 
-// abas do app de comunicação: mensagens | contatos
+// Comms app tabs: messages | contacts.
 let commTab = 'messages';
 function renderCommTabs() {
   const unread = (game().contacts || []).reduce((n, c) => n + (c.unread || 0), 0);
-  $('comm-tabs').hidden = !!chatOpen;
+  const splitView = isDesktopMode();
+  $('comm-tabs').hidden = !!chatOpen && !splitView;
+  $('comms-empty').hidden = !splitView || !!chatOpen;
   for (const b of document.querySelectorAll('#comm-tabs .seg-b')) b.classList.toggle('is-active', b.dataset.ct === commTab);
   $('comm-unread').textContent = unread || '';
-  $('msg-list').hidden = !!chatOpen || commTab !== 'messages';
-  $('comm-contacts').hidden = !!chatOpen || commTab !== 'contacts';
+  $('msg-list').hidden = (!splitView && !!chatOpen) || commTab !== 'messages';
+  $('comm-contacts').hidden = (!splitView && !!chatOpen) || commTab !== 'contacts';
 }
 $('comm-tabs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-ct]');
@@ -634,10 +740,19 @@ function openChat(id) {
   lastChatKey = '';
   pendingReply = null;
   lastGoodThread = null;
+  for (const row of $('msg-list').querySelectorAll('.conv')) {
+    const active = row.dataset.id === id;
+    row.classList.toggle('is-active', active);
+    if (active) row.setAttribute('aria-current', 'true');
+    else row.removeAttribute('aria-current');
+  }
   $('chat').hidden = false;
-  $('msg-list').hidden = true;
-  $('comm-tabs').hidden = true;
-  $('comm-contacts').hidden = true;
+  $('comms-empty').hidden = true;
+  $('appbar-back').hidden = false;
+  const splitView = isDesktopMode();
+  $('msg-list').hidden = !splitView || commTab !== 'messages';
+  $('comm-tabs').hidden = !splitView;
+  $('comm-contacts').hidden = !splitView || commTab !== 'contacts';
   const c = contactById(id) || { name: '' };
   $('appbar-title').innerHTML = `<span class="chat-head"><span class="avatar avatar-sm">${avatarHtml(c)}</span><span>${esc(c.name)}</span></span>`;
   $('appbar-action').innerHTML = c.callable ? `<button class="appbar-btn" id="chat-call"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></button>` : '';
@@ -652,7 +767,9 @@ function closeChat(fromHistory) {
   if (!chatOpen) return;
   chatOpen = null;
   $('chat').hidden = true;
+  $('comms-empty').hidden = !isDesktopMode();
   $('appbar-title').textContent = t('appMessages');
+  $('appbar-back').hidden = isDesktopMode();
   $('appbar-action').innerHTML = '';
   cmd('thread_close');
   renderMessages(true);
@@ -663,10 +780,10 @@ let lastGoodThread = null;
 function renderChat(force) {
   const g = game();
   let th = g.thread && g.thread.contact === chatOpen ? g.thread : null;
-  // nunca apaga a conversa por causa de uma leitura vazia passageira
+  // Never delete a conversation because of a temporary empty read.
   if (th && (th.messages || []).length) lastGoodThread = th;
   else if (th && lastGoodThread && lastGoodThread.contact === chatOpen) th = { ...lastGoodThread, choices: th.choices && th.choices.length ? th.choices : lastGoodThread.choices };
-  // resposta que não voltou em 10 s: desiste do "enviando"
+  // If no reply arrives within 10 seconds, stop showing the sending state.
   if (pendingReply && Date.now() - pendingReply.at > 10000) pendingReply = null;
   const today = (g.player || {}).day;
   const key = JSON.stringify([th, pendingReply, LANG]);
@@ -686,7 +803,7 @@ function renderChat(force) {
         <div class="bubble-meta">${m.t ? `${pad(m.t.h)}:${pad(m.t.m)}` : ''}${m.me ? '<span class="ticks">✓✓</span>' : ''}</div>
       </div>`);
   }
-  // resposta enviada que ainda não voltou do jogo
+  // Reply that has been sent but has not yet returned from the game.
   if (pendingReply && !(th.messages || []).some((m) => m.me && m.text === pendingReply.text)) {
     html.push(`<div class="bubble me sending"><div class="bubble-text">${esc(pendingReply.text)}</div><div class="bubble-meta">${t('sending')}</div></div>`);
   } else if (pendingReply) pendingReply = null;
@@ -721,7 +838,7 @@ function offerImg(o) {
   const q = o.img.atlas ? `?a=${encodeURIComponent(o.img.atlas)}` : '';
   return `<img src="avatar/${encodeURIComponent(o.img.part)}.png${q}" alt="" loading="lazy" onerror="this.remove()">`;
 }
-// Só o Autofixer: os outros sites do jogo são páginas de leitura que só abrem nos terminais
+// Autofixer only: the other in-game websites are read-only pages that open at terminals.
 function renderInternet(force) {
   if (currentApp !== 'internet') return;
   const g = game();
@@ -774,7 +891,7 @@ function askBuy(id) {
 $('buy-cancel').addEventListener('click', () => { $('buy-sheet').hidden = true; buyId = null; });
 $('buy-confirm').addEventListener('click', () => { if (!buyId) return; buzz([20, 40, 20]); cmd('buy', buyId); $('buy-sheet').hidden = true; buyId = null; });
 
-// ---------- câmera ----------
+// ---------- Camera ----------
 let photos = [];
 async function loadPhotos() {
   try { photos = await (await fetch(`/api/photos?k=${encodeURIComponent(key)}`)).json(); } catch { photos = []; }
@@ -797,14 +914,23 @@ $('cam-gallery').addEventListener('click', (e) => {
   $('viewer').hidden = false;
 });
 let viewerPhoto = null;
-$('viewer').addEventListener('click', (e) => {
-  if (e.target.closest('#viewer-wall')) {
-    buzz(12); setWallpaper(viewerPhoto);
-    $('viewer').hidden = true; openWallEdit(); return;
-  }
+$('viewer-wall').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!viewerPhoto) { toast(t('wallSetFail'), false, t('setWall')); return; }
+  buzz(12);
+  setWallpaper(viewerPhoto);
   $('viewer').hidden = true;
+  viewerPhoto = null;
+  goHome();
+  requestAnimationFrame(() => applyWallpaper());
+  toast(t('wallSet'), true, t('setWall'));
 });
-// imagem anexada numa mensagem: abre em tela cheia
+$('viewer').addEventListener('click', (e) => {
+  if (e.target.closest('#viewer-wall')) return;
+  $('viewer').hidden = true;
+  viewerPhoto = null;
+});
+// An image attached to a message opens fullscreen.
 $('chat-body').addEventListener('click', (e) => {
   const b = e.target.closest('.bubble-pic');
   if (!b || b.classList.contains('broken')) return;
@@ -868,7 +994,24 @@ let shardOpen = null;
 let shardQuery = '';
 let shardFont = 17;
 try { shardFont = Number(localStorage.getItem('neuroport.shardFont')) || 17; } catch { /* ok */ }
-// cópia salva no celular (para ler depois, sem o jogo / sem o PC)
+function updateShardPane() {
+  const desktop = isDesktopMode();
+  const opened = !!shardOpen;
+  $('shard-sidebar').hidden = opened && !desktop;
+  $('shard-content').hidden = !desktop && !opened;
+  $('shard-search').hidden = opened && !desktop;
+  $('shard-savebar').hidden = opened && !desktop;
+  $('shard-list').hidden = opened && !desktop;
+  $('shard-reader').hidden = !opened;
+  $('shard-empty').hidden = !desktop || opened;
+  if (desktop && currentApp === 'shards') $('appbar-back').hidden = !opened;
+  for (const row of $('shard-list').querySelectorAll('.shard-row')) {
+    const selected = row.dataset.id === shardOpen;
+    row.classList.toggle('is-selected', selected);
+    if (selected) row.setAttribute('aria-current', 'true'); else row.removeAttribute('aria-current');
+  }
+}
+// Copy saved on this device for later reading, even when the game or PC is offline.
 const SHARD_SAVE = 'neuroport.shards.saved';
 function savedShards() {
   try { const d = JSON.parse(localStorage.getItem(SHARD_SAVE) || 'null'); return d && Array.isArray(d.shards) ? d : null; } catch { return null; }
@@ -880,7 +1023,7 @@ async function loadShards() {
   $('shard-q').placeholder = t('shardsSearch');
   if (!shards.length) $('shard-list').innerHTML = `<p class="empty dim">${t('loading')}</p>`;
   let live = null;
-  try { live = (await (await fetch(`/api/shards?k=${encodeURIComponent(key)}`)).json()).shards; } catch { /* sem PC */ }
+  try { live = (await (await fetch(`/api/shards?k=${encodeURIComponent(key)}`)).json()).shards; } catch { /* PC is unavailable */ }
   if (live && live.length) { shards = live; shardsFromSave = false; }
   else { const sv = savedShards(); if (sv) { shards = sv.shards; shardsFromSave = true; } }
   renderShards();
@@ -894,7 +1037,7 @@ function saveShardsLocal() {
   } catch { toast(t('shardsSaveFail'), false); }
   renderShards();
 }
-// também como arquivo de texto (para guardar ou abrir em outro aparelho)
+// Also available as a text file to save or open on another device.
 const NL = String.fromCharCode(10);
 function downloadShards() {
   if (!shards.length) return;
@@ -911,19 +1054,19 @@ function downloadShards() {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
-// categorias começam fechadas; o jogador abre uma por uma (a busca abre as que têm resultado)
+// Categories start collapsed; the player can expand them individually (search expands matching categories).
 const shardCatsOpen = new Set();
-// nomes de grupo do jogo vêm como ids (ex.: "lore_corpo") quando não há tradução
+// In-game group names may arrive as IDs (e.g. "lore_corpo") when no translation is available.
 function shardCat(c) {
   if (!c) return t('shardsOther');
   const k = 'shcat_' + c;
   if (t(k) !== k) return t(k);
   return String(c).split('/').pop().replace(/[_-]+/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
 }
-// o texto do jogo traz as quebras de linha como barra-n literal
+// The game may encode line breaks as literal backslash-n sequences.
 function shardText(x) { return fixNl(x); }
 function renderShards() {
-  if (shardOpen) return;
+  if (shardOpen && !isDesktopMode()) return;
   const q = shardQuery.trim().toLowerCase();
   const list = shards.filter((s) => !q || (s.title || '').toLowerCase().includes(q) || (s.text || '').toLowerCase().includes(q));
   const groups = new Map();
@@ -939,7 +1082,7 @@ function renderShards() {
     const news = items.filter((s) => s.read === false).length;
     return `
     <li class="shard-cat${open ? ' open' : ''}" data-cat="${esc(cat)}"><span class="fold-chev">›</span><span class="sc-name">${esc(cat)}</span>${news ? `<i class="sc-new">${news}</i>` : ''}<b>${items.length}</b></li>
-    ${open ? items.map((s) => `<li class="shard-row${s.read === false ? ' new' : ''}" data-id="${esc(s.id)}">
+    ${open ? items.map((s) => `<li class="shard-row${s.read === false ? ' new' : ''}${shardOpen === s.id ? ' is-selected' : ''}" data-id="${esc(s.id)}"${shardOpen === s.id ? ' aria-current="true"' : ''}>
       <svg viewBox="0 0 24 24"><use href="#i-shard"/></svg>
       <div class="shard-main"><b>${esc(s.title || '—')}</b><small>${esc(shardText(s.text).replace(/\s+/g, ' ').slice(0, 90))}</small></div>
     </li>`).join('') : ''}`;
@@ -949,13 +1092,11 @@ function openShard(id) {
   const s = shards.find((x) => x.id === id);
   if (!s) return;
   shardOpen = id;
-  $('shard-list').hidden = true;
-  $('shard-search').hidden = true;
-  $('shard-savebar').hidden = true;
-  $('shard-reader').hidden = false;
+  renderShards();
+  updateShardPane();
   $('shard-cat').textContent = shardCat(s.cat);
   $('shard-title').textContent = s.title || '';
-  // parágrafos: o texto do jogo usa quebras de linha simples
+  // Paragraphs: the game uses single line breaks in its text.
   $('shard-text').innerHTML = esc(shardText(s.text)).split(/\n{1,}/).map((p) => `<p>${p}</p>`).join('');
   $('shard-text').style.fontSize = shardFont + 'px';
   $('shard-reader').scrollTop = 0;
@@ -965,11 +1106,8 @@ function openShard(id) {
 function closeShard(fromHistory) {
   if (!shardOpen) return;
   shardOpen = null;
-  $('shard-reader').hidden = true;
-  $('shard-list').hidden = false;
-  $('shard-search').hidden = false;
-  $('shard-savebar').hidden = false;
   renderShards();
+  updateShardPane();
   if (!fromHistory && history.state && history.state.shard) history.back();
 }
 $('shard-list').addEventListener('click', (e) => {
@@ -980,7 +1118,7 @@ $('shard-list').addEventListener('click', (e) => {
 });
 $('shard-save').addEventListener('click', () => { buzz(10); saveShardsLocal(); });
 $('shard-dl').addEventListener('click', () => { buzz(10); downloadShards(); });
-// fora do jogo: a tela de "sem sinal" oferece as shards salvas
+// Offline: the no-signal screen offers saved shards.
 $('offline-shards').addEventListener('click', () => { buzz(8); offlineReading = true; $('offline').hidden = true; openApp('shards'); });
 $('shard-q').addEventListener('input', (e) => { shardQuery = e.target.value; renderShards(); });
 $('shard-reader').addEventListener('click', (e) => {
@@ -992,7 +1130,7 @@ $('shard-reader').addEventListener('click', (e) => {
   $('shard-text').style.fontSize = shardFont + 'px';
 });
 
-// ---------- legendas na chamada ----------
+// ---------- Call subtitles ----------
 let lastSubKey = '';
 function renderSubs() {
   const g = game();
@@ -1011,10 +1149,11 @@ function renderSubs() {
   box.scrollTop = box.scrollHeight;
 }
 
-// ---------- integração com o render principal ----------
+// ---------- Main renderer integration ----------
 let offlineReading = false;
 function renderOS() {
   if ($('offline-shards')) $('offline-shards').hidden = !hasSavedShards();
+  if (isDesktopMode()) renderDesktopNav();
   renderStatus();
   if (currentApp === 'home') renderHome();
   checkNewMessages();
@@ -1025,7 +1164,7 @@ function renderOS() {
   renderMapMode();
   if (currentApp === 'settings') renderSettingsLight();
 }
-// ajustes: só o interruptor do modo imersivo muda com o jogo
+// Settings: only the immersive-mode switch follows the game state.
 let lastImm = null;
 function renderSettingsLight() {
   const g = game();
@@ -1034,7 +1173,7 @@ function renderSettingsLight() {
   if (imm !== lastImm) { lastImm = imm; renderSettings(); }
 }
 
-// respostas do jogo para os comandos novos
+// Game responses for the new commands.
 const _onAckExtra = window.onAckExtra;
 window.onAckExtra = function (a, action) {
   if (_onAckExtra && _onAckExtra(a, action)) return true;
@@ -1048,7 +1187,10 @@ window.onAckExtra = function (a, action) {
   return true;
 };
 
-// início: abre na tela inicial (ou no app do endereço)
+// Apply the device-specific layout before opening the home screen.
+applyDeviceMode();
+
+// Startup: open the home screen (or the app specified by the URL).
 (function bootOS() {
   const want = location.hash.replace('#', '').split('/')[0];
   history.replaceState({ app: 'home' }, '', location.pathname + location.search);

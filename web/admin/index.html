@@ -89,7 +89,7 @@
 <header>
   <div class="logo">NEUROPORT<small data-i18n="subtitle"></small></div>
   <div class="pill" id="pill"><i></i><span id="pill-txt"></span></div>
-  <div class="langsw" id="langsw"><button data-lang="en">EN</button><button data-lang="pt">PT-BR</button></div>
+  <div class="langsw" id="langsw"><button data-lang="en" class="on">EN</button></div>
 </header>
 <main>
   <div class="col">
@@ -163,9 +163,9 @@
 </footer>
 <script>
 const $ = (id) => document.getElementById(id);
-// todo pedido de escrita leva este cabeçalho (o servidor recusa pedidos sem ele: protege contra outros sites)
+// Every write request includes this header; the server rejects requests without it to protect against other sites.
 const ADMIN_H = { 'X-Neuroport-Admin': '1' };
-// ---------- idioma: o do computador, com troca EN / PT-BR (fica salvo) ----------
+// ---------- Language: English-only in this release ----------
 const STR = {
   en: {
     subtitle: 'SERVER // CONTROL PANEL', pair: 'PAIR PHONE', newCode: 'NEW CODE', phones: 'CONNECTED PHONES', status: 'STATUS',
@@ -186,43 +186,15 @@ const STR = {
     imm_activity_log: 'Activity log', imm_crosshairs: 'Crosshair', imm_quest_tracker: 'Job objective', imm_object_markers: 'Object markers', imm_npc_names: 'NPC names',
     imm_wanted_level: 'Wanted level (NCPD)', imm_npc_nameplates: 'NPC nameplates', imm_crouch_indicator: 'Crouch indicator', imm_vehicle_hud: 'Vehicle HUD',
   },
-  pt: {
-    subtitle: 'SERVER // PAINEL DE CONTROLE', pair: 'PAREAR CELULAR', newCode: 'NOVO CÓDIGO', phones: 'CELULARES CONECTADOS', status: 'STATUS',
-    infoTitle: 'NÃO CONECTA?', info1: 'Celular e PC na mesma rede Wi-Fi.',
-    info2: 'Se abrir uma página de erro, digite o endereço começando com <b>http://</b> (não https).',
-    info3: 'Firewall do Windows: permita o Node.js em redes privadas.', showIps: 'Mostrar os endereços',
-    immWait: 'Esperando o jogo… (vale quando a janela do jogo estiver ativa)',
-    kGame: 'JOGO', kPlace: 'LOCAL', kLang: 'IDIOMA', kPois: 'MARCADORES', kQuests: 'MISSÕES', kContacts: 'CONTATOS', kUptime: 'TEMPO LIGADO',
-    controls: 'CONTROLES', imm: 'MODO IMERSIVO', immDesc: 'Esconde os elementos do HUD escolhidos (aqui embaixo ou no celular) e bloqueia as teclas de rádio, piloto automático e chamar veículo — tudo passa pelo celular.',
-    restart: 'REINICIAR SERVIDOR', restarting: 'REINICIANDO...', clearCache: 'LIMPAR CACHE DE AVATARES', refreshShop: 'ATUALIZAR LOJA',
-    open: 'ABRIR', openApp: 'ABRIR O APP NO NAVEGADOR DO PC', openMod: 'PASTA DO MOD', openPhotos: 'FOTOS DO JOGO', openProject: 'PASTA DO NEUROPORT',
-    qrOff: 'QR indisponível (sem internet)', stopped: 'SERVIDOR PARADO', pillMock: 'SIMULAÇÃO', pillLive: 'JOGO CONECTADO', pillMenu: 'NO MENU DO JOGO', pillOff: 'SEM JOGO',
-    gIn: 'EM JOGO', gMenu: 'MENU', gClosed: 'FECHADO', browser: 'Navegador', none: 'nenhum',
-    newCodeQ: 'Gerar um novo código? Os celulares conectados precisarão parear de novo.', restartQ: 'Reiniciar o servidor? Os celulares reconectam sozinhos em alguns segundos.',
-    immAll: 'ESCONDER TUDO', immHud: 'MODO IMERSIVO: ELEMENTOS DO HUD', immHudDesc: 'Tudo começa visível. Desligue o que deve sumir; só some com o modo imersivo ativado. É a mesma lista do celular.',
-    imm_minimap: 'Minimapa', imm_hud_markers: 'Marcadores no mundo', imm_healthbar: 'Barra de vida', imm_stamina_oxygen: 'Stamina / oxigênio', imm_npc_healthbar: 'Vida dos inimigos',
-    imm_ammo_counter: 'Munição', imm_input_hints: 'Dicas de botões', imm_action_buttons: 'TODOS os atalhos (T, V, Z, X e item rápido)',
-    imm_activity_log: 'Registro de atividades', imm_crosshairs: 'Mira', imm_quest_tracker: 'Objetivo da missão', imm_object_markers: 'Marcadores de objetos', imm_npc_names: 'Nomes dos NPCs',
-    imm_wanted_level: 'Nível de procurado (NCPD)', imm_npc_nameplates: 'Placas de nome dos NPCs', imm_crouch_indicator: 'Indicador de agachar', imm_vehicle_hud: 'HUD do veículo',
-  },
 };
-let LANG = 'en';
-try { LANG = localStorage.getItem('neuroport.admin.lang') || ''; } catch { /* ok */ }
-if (!STR[LANG]) LANG = /^pt/i.test(navigator.language || '') ? 'pt' : 'en';
+const LANG = 'en';
 const T = (k) => (STR[LANG] && STR[LANG][k]) || STR.en[k] || k;
 function applyLang() {
-  document.documentElement.lang = LANG === 'pt' ? 'pt-BR' : 'en';
+  document.documentElement.lang = 'en';
   for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = T(el.dataset.i18n);
   for (const el of document.querySelectorAll('[data-i18n-html]')) el.innerHTML = T(el.dataset.i18nHtml);
   for (const b of document.querySelectorAll('[data-lang]')) b.classList.toggle('on', b.dataset.lang === LANG);
 }
-document.getElementById('langsw').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-lang]');
-  if (!b) return;
-  LANG = b.dataset.lang;
-  try { localStorage.setItem('neuroport.admin.lang', LANG); } catch { /* ok */ }
-  applyLang(); lastToken = null; tick();
-});
 applyLang();
 let lastToken = null, lastIps = '';
 function qr(text) {
@@ -235,7 +207,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<'
 async function tick() {
   let st;
   try { st = await (await fetch('/admin/api/status', { cache: 'no-store' })).json(); } catch {
-    // servidor parado: o QR antigo levaria a uma página inexistente
+    // When the server is stopped, the old QR code would lead to a missing page.
     $('pill-txt').textContent = T('stopped'); $('pill').classList.remove('on');
     $('qr').classList.add('stale'); lastToken = null; return;
   }
@@ -246,8 +218,8 @@ async function tick() {
     $('code').textContent = String(st.token).replace(/(.{4})(?=.)/g, '$1-');
     const urls = st.ips.map((ip) => `http://${ip}:${st.port}/?k=${st.token}`);
     $('urls').innerHTML = urls.map((u) => `<div>${esc(u)}</div>`).join('');
-    // o QR usa o endereço da rede local (192.168.x.x), não o da VPN
-    qr(urls[0] || '');  // o servidor já manda o IP da rede local primeiro
+    // The QR code uses the local network address (192.168.x.x), not the VPN address.
+    qr(urls[0] || '');  // The server already lists the local network address first.
   }
   const live = st.online && st.inGame;
   $('pill').classList.toggle('on', live);
@@ -274,9 +246,9 @@ async function tick() {
   log.innerHTML = st.log.map((l) => `<span>${new Date(l.t).toLocaleTimeString()}</span> ${esc(l.line.trim())}`).join('\n');
   if (atEnd) log.scrollTop = log.scrollHeight;
 }
-// elementos do HUD do modo imersivo: mesma lista e ordem do celular (Ajustes), só com o modo ligado
+// Immersive HUD elements: same list and order as on the phone (Settings), shown only when the mode is enabled.
 let immOpen = false, immWas = null, immKey = '';
-const immPending = new Map(); // nome -> escondido (até o jogo confirmar)
+const immPending = new Map(); // Name -> hidden (until the game confirms it).
 function immLabel(e) {
   const k = 'imm_' + e.n;
   if (STR[LANG][k]) return STR[LANG][k];
@@ -314,14 +286,14 @@ $('immlist').onclick = async (ev) => {
   const b = ev.target.closest('[data-imm]');
   if (!b) return;
   const sw = b.querySelector('.switch');
-  const nowHidden = sw.classList.contains('on');   // ligado = visível; tocar esconde
+  const nowHidden = sw.classList.contains('on');   // On = visible; click to hide.
   sw.classList.toggle('on', !nowHidden);
   immPending.set(b.dataset.imm, nowHidden);
   await fetch('/admin/api/cmd', { method: 'POST', headers: ADMIN_H, body: JSON.stringify({ action: 'imm_toggle', arg: b.dataset.imm }) });
 };
 $('newtoken').onclick = async () => { if (confirm(T('newCodeQ'))) { await fetch('/admin/api/token', { method: 'POST', headers: ADMIN_H }); tick(); } };
-// modo imersivo: a linha inteira liga/desliga; mostra o novo estado na hora e espera o jogo confirmar
-// (com o jogo pausado/em segundo plano o mod só lê o comando quando a janela do jogo volta)
+// Immersive mode: the entire row toggles the setting, updates immediately and waits for game confirmation.
+// When the game is paused or in the background, the mod reads the command when the game window becomes active again.
 let immWant = null, immWantAt = 0;
 $('immrow').onclick = async () => {
   const on = !(immWant != null ? immWant : $('imm').classList.contains('on'));
@@ -331,7 +303,7 @@ $('immrow').onclick = async () => {
   $('immwait').hidden = false;
   await fetch('/admin/api/cmd', { method: 'POST', headers: ADMIN_H, body: JSON.stringify({ action: on ? 'immersive_on' : 'immersive_off' }) });
 };
-// dica (!) e endereços
+// Help text (!) and addresses.
 $('info-head').onclick = () => { const o = $('info-body').hidden; $('info-body').hidden = !o; $('info').classList.toggle('open', o); };
 try { $('showip').checked = localStorage.getItem('neuroport.admin.ips') === '1'; } catch { /* ok */ }
 $('urls').hidden = !$('showip').checked;
@@ -345,7 +317,7 @@ $('restart').onclick = async () => {
   // espera o servidor novo responder e recarrega o painel
   const t0 = Date.now();
   const wait = async () => {
-    try { const r = await fetch('/admin/api/status', { cache: 'no-store' }); if (r.ok && Date.now() - t0 > 1200) return location.reload(); } catch { /* ainda subindo */ }
+    try { const r = await fetch('/admin/api/status', { cache: 'no-store' }); if (r.ok && Date.now() - t0 > 1200) return location.reload(); } catch { /* Server is still starting */ }
     if (Date.now() - t0 < 20000) setTimeout(wait, 500); else { $('restart').disabled = false; $('restart').textContent = T('restart'); }
   };
   setTimeout(wait, 800);

@@ -1,20 +1,15 @@
-// Jogo simulado para testar a interface sem abrir o Cyberpunk.
-// Formato do estado é o mesmo que o mod CET grava em state.json.
+// Mock game used to test the interface without launching Cyberpunk.
+// The state format matches the state.json file written by the CET mod.
 'use strict';
 
 const TXT = {
-  'pt-br': {
-    previews: ['Tenho um trampo pra você. Me liga.', 'Seus implantes chegaram.', 'Pagamento enviado.', '', 'Não me procure mais.', 'Carro novo à venda.'],
-    districts: ['Little China', 'Kabuki', 'Distrito Corporativo', 'Japantown', 'Vista del Rey'],
-    garage: 'Garagem Sato',
-  },
   'en-us': {
     previews: ['Got a job for you. Call me.', 'Your implants are in.', 'Payment sent.', '', "Don't look for me again.", 'New car for sale.'],
     districts: ['Little China', 'Kabuki', 'Corpo Plaza', 'Japantown', 'Vista del Rey'],
     garage: 'Sato Garage',
   },
 };
-let lang = 'pt-br';
+let lang = 'en-us';
 const T = () => TXT[lang] || TXT['en-us'];
 
 const s = {
@@ -59,16 +54,6 @@ const s = {
 const TRACKS = ['Glass Arcades', 'Rust Halo', 'Afterglow Protocol', 'Sodium Rain', 'Heat Sink', 'Ghosts in the Grid', 'Overpass Lullaby'];
 
 const QUESTS = {
-  'pt-br': [
-    ['q1', 'main', 'Linha Fantasma', 'Encontre o contato no viaduto de Kabuki', 820],
-    ['q2', 'main', 'Código Morto', 'Fale com o netrunner no Afterlife', 2400],
-    ['q3', 'side', 'Cromo e Ferrugem', 'Leve o carro até a oficina', 640],
-    ['q4', 'side', 'Noite Longa', 'Espere até as 22h', null],
-    ['q5', 'side', 'Pássaro Quebrado', 'Investigue o apartamento', 1300],
-    ['q6', 'gig', 'Gig: Carga Quente', 'Roube o chip do cofre', 430],
-    ['q7', 'gig', 'Gig: Sem Testemunhas', 'Neutralize o alvo', 1900],
-    ['q8', 'other', 'Avistamento de ciberpsicopata', 'Investigue a área', 760],
-  ],
   'en-us': [
     ['q1', 'main', 'Ghost Line', 'Find the contact under the Kabuki overpass', 820],
     ['q2', 'main', 'Dead Code', 'Talk to the netrunner at the Afterlife', 2400],
@@ -89,13 +74,6 @@ function buildJournal() {
 }
 
 const THREADS = {
-  'pt-br': {
-    mock_rhea: { msgs: [['n', 'Ei. Tenho um trampo pra você.', 61, 22, 10], ['m', 'Que tipo de trampo?', 61, 22, 14], ['n', 'Do tipo que paga bem e não faz perguntas. Me liga.', 62, 3, 41]],
-      choices: [['c1', 'Fechado. Te ligo em 5.', true], ['c2', 'Agora não dá.']], reply: 'Perfeito. Aguardo.' },
-    mock_fixer: { msgs: [['n', 'Pagamento enviado. Bom trabalho no porto.', 62, 5, 23]], choices: [['c3', 'Valeu, Nine.']], reply: 'Sempre que precisar.' },
-    mock_doc: { msgs: [['n', 'Seus implantes chegaram. Passa na clínica.', 60, 11, 55], ['m', 'Amanhã cedo.', 60, 12, 2]], choices: [] },
-    mock_taro: { msgs: [['n', 'Viu o que rolou em Japantown?', 59, 23, 18]], choices: [['c4', 'Vi. Loucura.'], ['c5', 'Não, o que foi?']], reply: 'Depois te conto pessoalmente.' },
-  },
   'en-us': {
     mock_rhea: { msgs: [['n', 'Hey. Got a job for you.', 61, 22, 10], ['m', 'What kind of job?', 61, 22, 14], ['n', 'The kind that pays well and asks no questions. Call me.', 62, 3, 41]],
       choices: [['c1', 'Deal. Calling in 5.', true], ['c2', "Can't right now."]], reply: 'Perfect. Waiting.' },
@@ -124,7 +102,6 @@ function threadState() {
 }
 
 const SUB_LINES = {
-  'pt-br': ['Finalmente atendeu. Escuta com atenção.', 'Tem um carregamento saindo do porto hoje à noite.', 'Arasaka quer ele de volta. Nós queremos antes deles.', 'Te mando as coordenadas. Não se atrase.'],
   'en-us': ['Finally picked up. Listen carefully.', "There's a shipment leaving the docks tonight.", 'Arasaka wants it back. We want it first.', "I'm sending coordinates. Don't be late."],
 };
 let subIdx = 0, subAt = 0, subSeq = 0, subLog = [];
@@ -160,7 +137,7 @@ function buildContacts() {
   ];
 }
 
-// Marcadores fixos espalhados pela "cidade" (gerador determinístico)
+// Fixed markers across the city (deterministic generator).
 let seed = 7;
 const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 const ALL_POIS = [];
@@ -183,7 +160,7 @@ for (const [v, n] of Object.entries(POI_MIX)) {
   }
 }
 
-// Trajeto: segue as faixas de tráfego reais do jogo (web/map3d/roads.bin)
+// Route: follows the game's actual road segments (web/map3d/roads.bin).
 const fs = require('fs');
 const path = require('path');
 const SPEED = 18;
@@ -239,7 +216,7 @@ let ringUntil = 0;
 let minuteAcc = 0;
 
 function tick(dt) {
-  // relógio: 1 minuto de jogo por segundo real
+  // Clock: one in-game minute per real second.
   minuteAcc += dt;
   while (minuteAcc >= 1) {
     minuteAcc -= 1;
@@ -247,7 +224,7 @@ function tick(dt) {
     p.timeM += 1;
     if (p.timeM >= 60) { p.timeM = 0; p.timeH = (p.timeH + 1) % 24; }
   }
-  // movimento pelas faixas
+  // Movement along the lanes.
   const speed = s.vehicle.inside ? (s.vehicle.autodrive ? 14 : SPEED) : 1.6;
   let step = speed * dt, guard = 0;
   while (step > 0 && guard++ < 200) {
@@ -260,7 +237,7 @@ function tick(dt) {
     s.pos.x = ax + (bx - ax) * t;
     s.pos.y = ay + (by - ay) * t;
     s.pos.z = az + (bz - az) * t;
-    // convenção do jogo (assumida): yaw 0 = norte (+Y), positivo = anti-horário
+    // Assumed game convention: yaw 0 = north (+Y), positive = counterclockwise.
     if (len > 0.05) s.pos.yaw = (Math.atan2(-(bx - ax), by - ay) * 180) / Math.PI;
     if (along >= len - 1e-6) { seg++; along = 0; }
   }
@@ -271,11 +248,11 @@ function tick(dt) {
     s.vehicle.adEta = Math.round((d * 1.3) / 14);
   } else { delete s.vehicle.adDist; delete s.vehicle.adEta; }
   s.vehicle.adAvailable = !!s.waypoint;
-  // a missão rastreada fica no primeiro objetivo de missão da lista
+  // The tracked job is the first job objective in the list.
   const qObj = ALL_POIS.find((p) => p.v === 'DefaultQuest');
   const tq = s.journal.quests.find((q) => q.id === s.journal.tracked);
   if (qObj && tq) tq.dist = Math.round(Math.hypot(qObj.x - s.pos.x, qObj.y - s.pos.y));
-  // rádio: troca de música de vez em quando
+  // Radio: changes tracks occasionally.
   if (s.radio.on && rnd() < dt / 40) s.radio.track = TRACKS[Math.floor(rnd() * TRACKS.length)];
   s.district = T().districts[Math.abs(Math.floor((s.pos.x + 1000) / 450)) % T().districts.length];
   updatePois();
@@ -289,7 +266,7 @@ function tick(dt) {
     s.call.state = 'active';
     pendingAnswer = null;
   }
-  // legendas: uma fala a cada ~3 s enquanto a chamada está ativa
+  // Subtitles: one line about every three seconds while a call is active.
   const lines = SUB_LINES[lang] || SUB_LINES['en-us'];
   if (s.call.state === 'active' && Date.now() > subAt && subIdx < lines.length) {
     const c = s.contacts.find((x) => x.id === s.call.contact);
@@ -389,8 +366,8 @@ function run(action, arg) {
     const q = s.journal.quests.find((x) => x.id === arg);
     if (!q) return { ok: false, msg: 'not_found' };
     s.questDetail = { id: q.id, level: 22 + q.title.length % 12, district: s.district,
-      description: lang === 'pt-br' ? 'Uma fonte confiável passou a localização. O resto depende de você — e de quem chegar primeiro.' : 'A trusted source passed on the location. The rest is up to you — and whoever gets there first.',
-      objectives: [{ text: q.objective, state: 'Active' }, { text: lang === 'pt-br' ? 'Converse com o informante' : 'Talk to the informant', state: 'Succeeded' }, { text: lang === 'pt-br' ? 'Recupere os dados (opcional)' : 'Recover the data', state: 'Active', optional: true, count: 1, total: 3 }] };
+      description: 'A trusted source passed on the location. The rest is up to you — and whoever gets there first.',
+      objectives: [{ text: q.objective, state: 'Active' }, { text: 'Talk to the informant', state: 'Succeeded' }, { text: 'Recover the data (optional)', state: 'Active', optional: true, count: 1, total: 3 }] };
     return { ok: true, msg: 'ok' };
   }
   if (action === 'quest_details_close') { s.questDetail = null; return { ok: true, msg: 'ok' }; }

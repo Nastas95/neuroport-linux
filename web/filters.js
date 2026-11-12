@@ -1,95 +1,94 @@
-// Filtros do mapa: mesmos grupos e categorias do mapa interativo da comunidade
-// (cyberpunk2077-map.com), mais alguns tipos que só existem no jogo 2.x.
-// Cada filtro lista os tipos de marcador do jogo (gamedataMappinVariant, sem o
-// sufixo "Variant" e sem o prefixo "Zzz##_") que caem nele.
+// Map filters: the same groups and categories as the community interactive map
+// (cyberpunk2077-map.com), plus a few types found only in game version 2.x.
+// Each filter lists game marker types (gamedataMappinVariant, without the
+// entries with the "Variant" suffix and without the "Zzz##_" prefix are grouped here.
 'use strict';
 
 const FILTER_GROUPS = [
   {
-    id: 'quest', color: '#f7e05a', shape: 'diamond', label: { en: 'ACTIVE JOBS', pt: 'MISSÕES ATIVAS' },
+    id: 'quest', color: '#f7e05a', shape: 'diamond', label: { en: 'ACTIVE JOBS' },
     filters: [
-      { id: 'quest_obj', v: ['DefaultQuest'], extra: true, label: { en: 'Job Objective', pt: 'Objetivo de missão' } },
-      { id: 'quest_other', v: ['DynamicEvent', 'Conversation', 'PhoneCall'], extra: true, color: '#ffd27a', label: { en: 'Job Point', pt: 'Ponto de missão' } },
+      { id: 'quest_obj', v: ['DefaultQuest'], extra: true, label: { en: 'Job Objective' } },
+      { id: 'quest_other', v: ['DynamicEvent', 'Conversation', 'PhoneCall'], extra: true, color: '#ffd27a', label: { en: 'Job Point' } },
     ],
   },
   {
-    id: 'job', color: '#f7e05a', shape: 'diamond', label: { en: 'JOB', pt: 'TRABALHOS' },
+    id: 'job', color: '#f7e05a', shape: 'diamond', label: { en: 'JOB' },
     filters: [
-      { id: 'gun_for_hire', v: ['BountyHunt'], quick: 'gig', label: { en: 'Gun for Hire', pt: 'Pistoleiro de aluguel' } },
-      { id: 'search_recover', v: ['Retrieving'], quick: 'gig', label: { en: 'Search and Recover', pt: 'Busca e resgate' } },
-      { id: 'thievery', v: ['Thievery'], quick: 'gig', label: { en: 'Thievery', pt: 'Roubo' } },
-      { id: 'saboteur', v: ['Sabotage'], quick: 'gig', label: { en: 'Agent Saboteur', pt: 'Agente sabotador' } },
-      { id: 'sos', v: ['ClientInDistress', 'SOSsignal'], quick: 'gig', label: { en: 'SOS: Merc Needed', pt: 'SOS: precisa-se de mercenário' } },
-      { id: 'delivery', v: ['Courier'], quick: 'gig', extra: true, label: { en: 'Special Delivery', pt: 'Entrega especial' } },
-      { id: 'capitan', v: ['CourierSandboxActivity'], quick: 'gig', label: { en: 'Vehicle contract (El Capitan)', pt: 'Contrato de veículo (El Capitan)' } },
-      { id: 'convoy', v: ['Convoy'], quick: 'gig', label: { en: 'Convoy', pt: 'Comboio' } },
-      { id: 'side_job', v: ['QuestGiver', 'ExclamationMark'], quick: 'side', color: '#ffb347', label: { en: 'Side Job', pt: 'Missão secundária' } },
+      { id: 'gun_for_hire', v: ['BountyHunt'], quick: 'gig', label: { en: 'Gun for Hire' } },
+      { id: 'search_recover', v: ['Retrieving'], quick: 'gig', label: { en: 'Search and Recover' } },
+      { id: 'thievery', v: ['Thievery'], quick: 'gig', label: { en: 'Thievery' } },
+      { id: 'saboteur', v: ['Sabotage'], quick: 'gig', label: { en: 'Agent Saboteur' } },
+      { id: 'sos', v: ['ClientInDistress', 'SOSsignal'], quick: 'gig', label: { en: 'SOS: Merc Needed' } },
+      { id: 'delivery', v: ['Courier'], quick: 'gig', extra: true, label: { en: 'Special Delivery' } },
+      { id: 'capitan', v: ['CourierSandboxActivity'], quick: 'gig', label: { en: 'Vehicle contract (El Capitan)' } },
+      { id: 'convoy', v: ['Convoy'], quick: 'gig', label: { en: 'Convoy' } },
+      { id: 'side_job', v: ['QuestGiver', 'ExclamationMark'], quick: 'side', color: '#ffb347', label: { en: 'Side Job' } },
     ],
   },
   {
-    id: 'open', color: '#4f8bff', shape: 'diamond', label: { en: 'OPEN WORLD', pt: 'MUNDO ABERTO' },
+    id: 'open', color: '#4f8bff', shape: 'diamond', label: { en: 'OPEN WORLD' },
     filters: [
-      { id: 'ncpd_hustles', v: ['NCPDGig'], quick: 'ncpd', label: { en: 'NCPD Scanner Hustles', pt: 'Ocorrências do scanner da NCPD' } },
-      { id: 'assault', v: ['GangWatch'], quick: 'ncpd', label: { en: 'Assault in Progress', pt: 'Agressão em andamento' } },
-      { id: 'organized_crime', v: ['Outpost'], quick: 'ncpd', label: { en: 'Organized Crime Activity', pt: 'Atividade do crime organizado' } },
-      { id: 'reported_crime', v: ['HiddenStash'], quick: 'ncpd', label: { en: 'Reported Crime', pt: 'Crime denunciado' } },
-      { id: 'cyberpsycho', v: ['HuntForPsycho'], quick: 'ncpd', color: '#ff4d6d', label: { en: 'Cyberpsycho Sighting', pt: 'Avistamento de ciberpsicopata' } },
-      { id: 'undiscovered', v: ['QuestionMark'], quick: 'ncpd', extra: true, label: { en: 'Undiscovered Activity', pt: 'Atividade não descoberta' } },
-      { id: 'tarot', v: ['Tarot'], quick: 'tarot', color: '#c77dff', label: { en: 'Tarot Card', pt: 'Carta de tarô' } },
-      { id: 'racing', v: ['Racing'], extra: true, label: { en: 'Street Race', pt: 'Corrida de rua' } },
-      { id: 'encounter', v: ['WorldEncounter', 'RoadBlockade'], extra: true, label: { en: 'World Encounter', pt: 'Encontro no mundo' } },
-      { id: 'relic', v: ['RelicDeviceBasic', 'RelicDeviceSpecial'], extra: true, label: { en: 'Relic Point', pt: 'Ponto Relic' } },
+      { id: 'ncpd_hustles', v: ['NCPDGig'], quick: 'ncpd', label: { en: 'NCPD Scanner Hustles' } },
+      { id: 'assault', v: ['GangWatch'], quick: 'ncpd', label: { en: 'Assault in Progress' } },
+      { id: 'organized_crime', v: ['Outpost'], quick: 'ncpd', label: { en: 'Organized Crime Activity' } },
+      { id: 'reported_crime', v: ['HiddenStash'], quick: 'ncpd', label: { en: 'Reported Crime' } },
+      { id: 'cyberpsycho', v: ['HuntForPsycho'], quick: 'ncpd', color: '#ff4d6d', label: { en: 'Cyberpsycho Sighting' } },
+      { id: 'undiscovered', v: ['QuestionMark'], quick: 'ncpd', extra: true, label: { en: 'Undiscovered Activity' } },
+      { id: 'tarot', v: ['Tarot'], quick: 'tarot', color: '#c77dff', label: { en: 'Tarot Card' } },
+      { id: 'racing', v: ['Racing'], extra: true, label: { en: 'Street Race' } },
+      { id: 'encounter', v: ['WorldEncounter', 'RoadBlockade'], extra: true, label: { en: 'World Encounter' } },
+      { id: 'relic', v: ['RelicDeviceBasic', 'RelicDeviceSpecial'], extra: true, label: { en: 'Relic Point' } },
     ],
   },
   {
-    id: 'service', color: '#2bfdb1', shape: 'square', label: { en: 'SERVICE POINT', pt: 'PONTOS DE SERVIÇO' },
+    id: 'service', color: '#2bfdb1', shape: 'square', label: { en: 'SERVICE POINT' },
     filters: [
-      { id: 'drop_point', v: ['ServicePointDropPoint'], color: '#d8dde6', label: { en: 'Drop Point', pt: 'Ponto de entrega' } },
-      { id: 'clothing', v: ['ServicePointClothes'], label: { en: 'Clothing', pt: 'Roupas' } },
-      { id: 'ripperdoc', v: ['ServicePointRipperdoc', 'ServicePointCyberware'], label: { en: 'Ripperdoc', pt: 'Ripperdoc' } },
-      { id: 'netrunner', v: ['ServicePointNetTrainer'], label: { en: 'Netrunner', pt: 'Netrunner' } },
-      { id: 'weapon_shop', v: ['ServicePointGuns'], label: { en: 'Weapon Shop', pt: 'Loja de armas' } },
-      { id: 'melee', v: ['ServicePointMeleeTrainer'], label: { en: 'Melee Weapon Vendor', pt: 'Armas brancas' } },
-      { id: 'medpoint', v: ['ServicePointMeds'], label: { en: 'Medpoint', pt: 'Medpoint' } },
-      { id: 'food', v: ['ServicePointFood'], label: { en: 'Food', pt: 'Comida' } },
-      { id: 'bar', v: ['ServicePointBar'], label: { en: 'Bar', pt: 'Bar' } },
-      { id: 'joytoy', v: ['ServicePointProstitute'], label: { en: 'Joytoy', pt: 'Joytoy' } },
-      { id: 'junk', v: ['ServicePointJunk'], label: { en: 'Junk Shop', pt: 'Ferro-velho' } },
-      { id: 'tech', v: ['ServicePointTech'], extra: true, label: { en: 'Tech Vendor', pt: 'Vendedor de tecnologia' } },
-      { id: 'black_market', v: ['ServicePointBlackMarket'], extra: true, label: { en: 'Black Market', pt: 'Mercado negro' } },
-      { id: 'glamdoc', v: ['ServicePointGlamdoc'], extra: true, label: { en: 'Glamdoc', pt: 'Glamdoc' } },
-      { id: 'merchant', v: ['WanderingMerchant'], extra: true, label: { en: 'Wandering Merchant', pt: 'Vendedor ambulante' } },
+      { id: 'drop_point', v: ['ServicePointDropPoint'], color: '#d8dde6', label: { en: 'Drop Point' } },
+      { id: 'clothing', v: ['ServicePointClothes'], label: { en: 'Clothing' } },
+      { id: 'ripperdoc', v: ['ServicePointRipperdoc', 'ServicePointCyberware'], label: { en: 'Ripperdoc' } },
+      { id: 'netrunner', v: ['ServicePointNetTrainer'], label: { en: 'Netrunner' } },
+      { id: 'weapon_shop', v: ['ServicePointGuns'], label: { en: 'Weapon Shop' } },
+      { id: 'melee', v: ['ServicePointMeleeTrainer'], label: { en: 'Melee Weapon Vendor' } },
+      { id: 'medpoint', v: ['ServicePointMeds'], label: { en: 'Medpoint' } },
+      { id: 'food', v: ['ServicePointFood'], label: { en: 'Food' } },
+      { id: 'bar', v: ['ServicePointBar'], label: { en: 'Bar' } },
+      { id: 'joytoy', v: ['ServicePointProstitute'], label: { en: 'Joytoy' } },
+      { id: 'junk', v: ['ServicePointJunk'], label: { en: 'Junk Shop' } },
+      { id: 'tech', v: ['ServicePointTech'], extra: true, label: { en: 'Tech Vendor' } },
+      { id: 'black_market', v: ['ServicePointBlackMarket'], extra: true, label: { en: 'Black Market' } },
+      { id: 'glamdoc', v: ['ServicePointGlamdoc'], extra: true, label: { en: 'Glamdoc' } },
+      { id: 'merchant', v: ['WanderingMerchant'], extra: true, label: { en: 'Wandering Merchant' } },
     ],
   },
   {
-    id: 'vehicle', color: '#ff8a5c', shape: 'circle', label: { en: 'VEHICLE', pt: 'VEÍCULOS' },
+    id: 'vehicle', color: '#ff8a5c', shape: 'circle', label: { en: 'VEHICLE' },
     filters: [
-      { id: 'vehicle_sale', v: ['CarForPurchase', 'MotorcycleForPurchase'], label: { en: 'Vehicle for Sale', pt: 'Veículo à venda' } },
+      { id: 'vehicle_sale', v: ['CarForPurchase', 'MotorcycleForPurchase'], label: { en: 'Vehicle for Sale' } },
     ],
   },
   {
-    id: 'other', color: '#c9d1e0', shape: 'circle', label: { en: 'OTHER', pt: 'OUTROS' },
+    id: 'other', color: '#c9d1e0', shape: 'circle', label: { en: 'OTHER' },
     filters: [
-      { id: 'fast_travel', v: ['FastTravel'], color: '#3f8cff', label: { en: 'Fast Travel', pt: 'Viagem rápida' } },
-      { id: 'ncart', v: ['NCART'], color: '#9a6bff', extra: true, label: { en: 'NCART Station', pt: 'Estação NCART' } },
-      { id: 'taxi', v: ['DelamainTaxi'], extra: true, label: { en: 'Delamain Cab', pt: 'Táxi Delamain' } },
-      { id: 'apartment', v: ['Apartment', 'ApartmentToPurchase'], extra: true, label: { en: 'Apartment', pt: 'Apartamento' } },
-      { id: 'stash', v: ['PlayerStash', 'Wardrobe'], extra: true, label: { en: 'Stash / Wardrobe', pt: 'Esconderijo / guarda-roupa' } },
+      { id: 'fast_travel', v: ['FastTravel'], color: '#3f8cff', label: { en: 'Fast Travel' } },
+      { id: 'ncart', v: ['NCART'], color: '#9a6bff', extra: true, label: { en: 'NCART Station' } },
+      { id: 'taxi', v: ['DelamainTaxi'], extra: true, label: { en: 'Delamain Cab' } },
+      { id: 'apartment', v: ['Apartment', 'ApartmentToPurchase'], extra: true, label: { en: 'Apartment' } },
+      { id: 'stash', v: ['PlayerStash', 'Wardrobe'], extra: true, label: { en: 'Stash / Wardrobe' } },
     ],
   },
 ];
 
-// Categorias do site que não são marcadores do jogo (não dá para ler pelo mod)
+// Website categories that are not in-game markers and cannot be read by the mod.
 const FILTERS_UNAVAILABLE = {
   en: ['Landmark', 'Legendary / Iconic items'],
-  pt: ['Pontos de referência', 'Itens lendários / icônicos'],
 };
 
-// Filtro dinâmico (como o mapa do jogo): tier 0 aparece em qualquer zoom (missões, gigs);
-// tier 1 com zoom médio (viagem rápida, metrô, NCPD); tier 2 só bem perto (lojas e serviços).
+// Dynamic filter (like the in-game map): tier 0 appears at every zoom level (jobs and gigs);
+// tier 1 at medium zoom (fast travel, metro, NCPD); tier 2 only at close range (shops and services).
 const TIER_GROUP = { quest: 0, job: 0, open: 1, service: 2, vehicle: 2, other: 2 };
 const TIER_FILTER = { fast_travel: 1, ncart: 1, cyberpsycho: 0, ncpd_hustles: 1, drop_point: 1, apartment: 1 };
-// modos do filtro: dinâmico (tudo, por zoom), trabalhos, serviços, ou a lista personalizada
+// Filter modes: dynamic (everything, by zoom), jobs, services or a custom list.
 const FILTER_MODES = ['dynamic', 'jobs', 'services', 'custom'];
 const MODE_GROUPS = { jobs: ['quest', 'job', 'open'], services: ['service', 'vehicle', 'other'] };
 const MODE_STORE = 'neuroport.filters.mode';
@@ -99,7 +98,7 @@ function setFilterMode(m) {
   filterMode = m;
   try { localStorage.setItem(MODE_STORE, m); } catch { /* ok */ }
 }
-// o marcador entra no mapa no modo atual? (o zoom do modo dinâmico é aplicado pelo mapa)
+// Should this marker appear in the current mode? (dynamic zoom is applied by the map.)
 function filterShows(p) {
   const f = FILTER_BY_ID[p.f];
   if (!f) return false;
@@ -123,7 +122,7 @@ for (const g of FILTER_GROUPS) {
   }
 }
 
-// Acrescenta filtro, categoria do Quick Gig, cor e forma a cada marcador
+// Add filter, Quick Gig category, color and shape to each marker.
 function enrichPoi(p) {
   const f = FILTER_BY_VARIANT[p.v];
   if (!f) return null;
@@ -131,19 +130,19 @@ function enrichPoi(p) {
   return { ...p, f: f.id, cat: f.quick || null, color, shape: f.shape, tier: f.tier };
 }
 
-// Filtros ligados (salvos no celular). Padrão: todos ligados.
+// Enabled filters (saved locally). All filters are enabled by default.
 const FILTER_STORE = 'neuroport.filters.off';
 let filtersOff = new Set();
-try { filtersOff = new Set(JSON.parse(localStorage.getItem(FILTER_STORE) || '[]')); } catch { /* sem storage */ }
+try { filtersOff = new Set(JSON.parse(localStorage.getItem(FILTER_STORE) || '[]')); } catch { /* Storage is unavailable */ }
 function saveFilters() {
   try { localStorage.setItem(FILTER_STORE, JSON.stringify([...filtersOff])); } catch { /* ok */ }
 }
 const filterOn = (id) => !filtersOff.has(id);
 
-// Ícones de marcador do próprio jogo (extraídos do atlas de mappins: web/mapicons/<Variante>.png).
-// São glifos brancos; aqui viram glifo colorido sobre um disco escuro, como no mapa do jogo.
-const MAP_ICON_IMG = new Map();      // variante -> Image (null se não existir)
-const MAP_ICON_CANVAS = new Map();   // variante|cor|tamanho -> canvas pronto
+// In-game marker icons (extracted from the mappin atlas: web/mapicons/<Variant>.png).
+// These are white glyphs; here they become colored glyphs on a dark disc, like the in-game map.
+const MAP_ICON_IMG = new Map();      // Variant -> Image (null when unavailable).
+const MAP_ICON_CANVAS = new Map();   // Variant|color|size -> cached canvas.
 function mapIconImage(v, onReady) {
   let img = MAP_ICON_IMG.get(v);
   if (img === undefined) {
@@ -159,9 +158,9 @@ function mapIconImage(v, onReady) {
   if (onReady) img.waiting.push(onReady);
   return null;
 }
-// como no mapa do jogo, estes aparecem só como glifo colorido (sem disco)
+// As on the in-game map, these appear as colored glyphs only (without a disc).
 const GLYPH_ONLY = /^(FastTravel|NCART|ServicePointDropPoint|Apartment|ApartmentToPurchase)$/;
-// desenha o marcador num contexto 2D: disco escuro + anel + glifo na cor do filtro
+// Draw the marker in 2D: dark disc, ring and glyph in the filter color.
 function drawMapIcon(g, img, color, cx, cy, size, selected, v) {
   const r = size / 2;
   g.save();

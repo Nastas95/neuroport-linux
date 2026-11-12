@@ -1,13 +1,13 @@
-"""Extrai o avatar de um contato dos atlas de UI do jogo e salva como PNG.
+"""Extract a contact avatar from the game UI atlases and save it as a PNG.
 
-Uso: python avatar.py <parte> <saída.png> [atlas]
-  parte  nome da parte no atlas (UIIcon.AtlasPartName), ex.: judy
-  atlas  caminho do .inkatlas ou o hash (hex/decimal, sufixo ULL aceito); sem ele,
-         procura a parte nos atlas de avatares conhecidos.
+Usage: python avatar.py <part> <output.png> [atlas]
+  part   atlas part name (UIIcon.AtlasPartName), e.g. judy
+  atlas  path to the .inkatlas file or its hash (hex/decimal; ULL suffix accepted); if omitted,
+         search the known avatar atlases for the part.
 
 Atlas (inkTextureAtlas): slots[0] = {texture: .xbm, parts: [{partName, clippingRectInUVCoords}]}
-Textura (CBitmapTexture + rendRenderTextureBlobPC): BC1/BC3/BC7… ou RGBA; o buffer de pixels
-é o segmento seguinte do arquivo dentro do archive. Só os blocos do recorte são decodificados.
+Texture (CBitmapTexture + rendRenderTextureBlobPC): BC1/BC3/BC7… or RGBA; the pixel buffer
+is the next segment in the archive file. Only the cropped texture blocks are decoded.
 """
 import os, struct, sys, zlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -55,7 +55,7 @@ def atlas_parts(h):
     return slot.get('texture'), slot.get('parts') or []
 
 
-# ---------- decodificação de blocos ----------
+# ---------- Block decoding ----------
 def rgb565(c):
     r, g, b = (c >> 11) & 31, (c >> 5) & 63, c & 31
     return (r << 3 | r >> 2, g << 2 | g >> 4, b << 3 | b >> 2)
@@ -84,7 +84,7 @@ def alpha_block(b, o):
 
 
 def decode_region(data, fmt, width, row_pitch, x0, y0, x1, y1):
-    """Devolve (w, h, bytes RGBA) do retângulo [x0,x1)×[y0,y1)."""
+    """Return (width, height, RGBA bytes) for rectangle [x0,x1)×[y0,y1)."""
     bx0, by0, bx1, by1 = x0 // 4, y0 // 4, (x1 + 3) // 4, (y1 + 3) // 4
     W, H = (bx1 - bx0) * 4, (by1 - by0) * 4
     out = bytearray(W * H * 4)
@@ -101,7 +101,7 @@ def decode_region(data, fmt, width, row_pitch, x0, y0, x1, y1):
                 abits = int.from_bytes(data[o:o + 8], 'little')
                 px = [c[:3] + (((abits >> (4 * i)) & 15) * 17,) for i, c in enumerate(color_block(data, o + 8, True))]
             else:
-                raise ValueError('formato não suportado: ' + fmt)
+                raise ValueError('unsupported format: ' + fmt)
             for i, p in enumerate(px):
                 X, Y = (bx - bx0) * 4 + (i & 3), (by - by0) * 4 + (i >> 2)
                 k = (Y * W + X) * 4
@@ -131,7 +131,7 @@ def texture_region(path, uv):
     fmt = FORMATS.get(tex['setup'].get('compression'), 'BC3')
     width, height = blob['header']['sizeInfo']['width'], blob['header']['sizeInfo']['height']
     if fmt == 'BC7':
-        # BC7: decodifica a textura inteira com o Pillow (já desvirada) e recorta
+        # BC7: decode the full texture with Pillow (already flipped upright), then crop it.
         from atlas_bc7 import texture_image
         img = texture_image(path)
         W, H = img.size
@@ -139,11 +139,11 @@ def texture_region(path, uv):
         return im.width, im.height, im.convert('RGBA').tobytes()
     pitch = blob['header']['mipMapInfo'][0]['layout']['rowPitch']
     data = a.read_segment(s0 + 1)          # buffer de pixels (mip 0 primeiro)
-    # alguns cabeçalhos trazem rowPitch inválido: recalcula pelo formato
+    # Some headers contain an invalid rowPitch; recalculate it from the format.
     calc = width * 4 if fmt == 'RGBA' else ((width + 3) // 4) * (8 if fmt == 'BC1' else 16)
     if not (0 < pitch <= len(data)) or pitch < calc:
         pitch = calc
-    # as texturas de UI ficam guardadas de cabeça para baixo: o V é espelhado
+    # UI textures are stored upside down, so the V axis is flipped.
     x0, x1 = int(uv['Left'] * width), int(round(uv['Right'] * width))
     y0, y1 = int((1 - uv['Bottom']) * height), int(round((1 - uv['Top']) * height))
     if fmt == 'RGBA':
@@ -151,13 +151,13 @@ def texture_region(path, uv):
         w, h, px = x1 - x0, y1 - y0, b''.join(rows)
     else:
         w, h, px = decode_region(data, fmt, width, pitch, x0, y0, x1, y1)
-    # desvira a imagem
+    # Flip the image back upright.
     px = b''.join(px[(h - 1 - y) * w * 4:(h - y) * w * 4] for y in range(h))
     return w, h, px
 
 
 def halve(w, h, rgba):
-    """Reduz pela metade com média 2x2."""
+    """Reduce the image by half using a 2x2 average."""
     nw, nh = w // 2, h // 2
     out = bytearray(nw * nh * 4)
     for y in range(nh):
@@ -193,7 +193,7 @@ INDEX = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'atlas_index.js
 
 
 def build_index():
-    """Varre os archives do jogo atrás de todos os inkTextureAtlas e grava parte -> atlas."""
+    """Scan the game archives for all inkTextureAtlas resources and write a part-to-atlas index."""
     import json, time
     t0 = time.time()
     idx = {}
@@ -217,7 +217,7 @@ def build_index():
             except Exception:
                 continue
     json.dump(idx, open(INDEX, 'w'))
-    print(f'índice de atlas: {len(idx)} partes em {time.time() - t0:.0f}s')
+    print(f'atlas index: {len(idx)} parts in {time.time() - t0:.0f}s')
     return idx
 
 
@@ -251,7 +251,7 @@ def main():
                 write_png(dest, w, hh, rgba)
                 print(f'avatar {part}: {w}x{hh} de {tex} -> {dest}')
                 return
-    sys.exit(f'parte {part} não encontrada')
+    sys.exit(f'parte {part} not found')
 
 
 if __name__ == '__main__':

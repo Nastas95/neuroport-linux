@@ -1,7 +1,7 @@
-// Mapa 3D de Night City (three.js) a partir dos dados do mapa do próprio jogo
-// (web/map3d: world.glb, buildings.bin, roads.bin, manifest.json — gerados pelo
-// exportador do open77_3dmap a partir dos arquivos do jogo).
-// Coordenadas: jogo (x leste, y norte, z cima)  ->  cena (x, z, -y).
+// Night City 3D map (three.js), built from the game map data.
+// (web/map3d: world.glb, buildings.bin, roads.bin and manifest.json, exported
+// from the game files by open77_3dmap).
+// Coordinates: game (x east, y north, z up) -> scene (x, z, -y).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
@@ -16,7 +16,7 @@ const THEME = {
   building: 0x1f2230, buildingTop: 0x2c3042,
   route: 0x5ef6ff, player: 0xe8fdff,
 };
-// modo minimapa (navegação do carro): como o minimapa do jogo, plano, ruas azul-esverdeadas e rota amarela
+// Minimap mode (Car Mode navigation): flat like the in-game minimap, with teal roads and a yellow route.
 const FLAT_THEME = {
   background: 0x05080b, terrain: 0x0a1014, cliffs: 0x0d1418, water: 0x061620,
   roads: 0x1c4a52, roadBorders: 0x3fc6cf, metro: 0x14343a, landmarks: 0x1c4a52,
@@ -28,8 +28,8 @@ const DISTRICT_NAMES = {
   south_badlands: 'Badlands', spaceport: 'NCX Spaceport', morro_rock: 'Morro Rock',
 };
 
-// Mapa plano: tudo fica no chão (y = 0). Ícones, rota e a seta do V não flutuam mais acima do mapa.
-const FLAT_Y = 0.0005;   // escala vertical da cidade (achatada)
+// Flat map: everything stays on the ground (y = 0). Icons, route and V marker no longer float above it.
+const FLAT_Y = 0.0005;   // Vertical scale of the flattened city.
 const LAYER_ORDER = { terrain: 0, cliffs: 0, water: 1, metro: 3, landmarks: 3, roads: 4, roadBorders: 5 };
 const toScene = (x, y) => new THREE.Vector3(x, 0, -y);
 const IS_MOBILE = matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -45,7 +45,7 @@ function spriteTex(draw, size = 64) {
   return t;
 }
 
-const MAX_DIST = 18000;        // zoom mais afastado: a cidade inteira cabe na tela
+const MAX_DIST = 18000;        // Maximum zoom-out distance: the entire city fits on screen.
 const markerTexCache = new Map();
 function markerTex(color, shape, v) {
   const icon = v && typeof mapIconImage === 'function';
@@ -65,7 +65,7 @@ function markerTex(color, shape, v) {
       t.needsUpdate = true;
     };
     paint();
-    if (!mapIconImage(v, paint)) { /* pinta de novo quando carregar */ }
+    if (!mapIconImage(v, paint)) { /* Redraw when the image finishes loading. */ }
     markerTexCache.set(k, t);
     return t;
   }
@@ -96,8 +96,8 @@ class HoloMap3D {
     this.follow = true;
     this.headingUp = false;
     this.elev = 89.5;           // 89.5 = de cima (2D); ~35 = 3D
-    this.dist = 900;            // distância da câmera (m)
-    this.bearing = 0;           // rumo da câmera (graus, 0 = norte)
+    this.dist = 900;            // Camera distance (m).
+    this.bearing = 0;           // Camera bearing (degrees, 0 = north).
     this.target = new THREE.Vector3();
     this.player = { x: 0, y: 0, z: 0, hdg: 0, ok: false };
     this.cur = { x: 0, y: 0, z: 0, hdg: 0 };
@@ -117,7 +117,7 @@ class HoloMap3D {
     this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !IS_MOBILE, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, IS_MOBILE ? 1.5 : 2));
-    // se o celular derrubar o contexto WebGL (falta de memória de vídeo), avisa e se recupera
+    // If the phone loses its WebGL context (video-memory pressure), report it and recover.
     canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.lost = true; this.emit('lost'); });
     canvas.addEventListener('webglcontextrestored', () => { this.lost = false; this.emit('restored'); });
     this.renderer.setClearColor(THEME.background);
@@ -154,7 +154,7 @@ class HoloMap3D {
       if (layer === 'roadBorders') m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.45, depthWrite: false });
       else if (layer === 'roads' || layer === 'water') m = new THREE.MeshBasicMaterial({ color });
       else m = new THREE.MeshLambertMaterial({ color, flatShading: true });
-      // achatado: a ordem de desenho decide quem fica por cima (sem briga de profundidade)
+      // Flat rendering: draw order determines what appears on top (no depth-buffer conflicts).
       m.depthTest = false; m.depthWrite = false;
       return (mats[layer] = m);
     };
@@ -210,12 +210,12 @@ class HoloMap3D {
     this.applyQuality();
   }
 
-  // prédios: só a planta (o telhado achatado no chão), nunca o volume 3D
+  // Buildings: draw only their footprint (a flattened roof), never full 3D geometry.
   applyQuality() {
     for (const m of this.buildingMeshes || []) m.visible = false;
     for (const m of this.roofMeshes || []) { m.visible = !this.flat; m.scale.y = FLAT_Y; m.renderOrder = 2; }
   }
-  // minimapa: sem prédios, cores do minimapa do jogo
+  // Minimap: no buildings; use the in-game minimap colors.
   setFlat(on) {
     on = !!on;
     if (this.flat === on) return;
@@ -227,7 +227,7 @@ class HoloMap3D {
     if (this.routeMat) { this.routeMat.color.setHex(th.route); this.routeMat.dashed = !on; this.routeMat.needsUpdate = true; }
     this.applyQuality();
   }
-  // filtro dinâmico: quanto mais perto, mais detalhes (tier 0 sempre, 1 média distância, 2 perto)
+  // Dynamic filter: show more detail at closer zoom levels (tier 0 always, tier 1 mid-range, tier 2 close-up).
   tierLimit() {
     return this.dist <= 1400 ? 2 : this.dist <= 3600 ? 1 : 0;
   }
@@ -243,7 +243,7 @@ class HoloMap3D {
     const R = {};
     for (const [k, a] of Object.entries(man.roads.arrays)) R[k] = new T[a.type](buf, a.offset, a.length);
     this.roads = R;
-    // grade espacial (células de 100 m) só com faixas da rede principal
+    // Spatial grid (100 m cells), containing only main road segments.
     const grid = new Map();
     const n = R.laneOffset.length;
     const add = (x, y, i, k) => {
@@ -265,7 +265,7 @@ class HoloMap3D {
     this.laneGrid = grid;
   }
 
-  // ---------- GPS: A* sobre as faixas de tráfego ----------
+  // ---------- GPS: A* across traffic lanes ----------
   nearestLane(x, y, hdg, maxCells = 3) {
     const R = this.roads;
     let best = -1, bk = 0, bd = Infinity, proj = null;
@@ -283,7 +283,7 @@ class HoloMap3D {
           const qx = ax + vx * tt, qy = ay + vy * tt;
           let d = Math.hypot(qx - x, qy - y);
           if (hdg != null) {
-            // prefere faixas no sentido em que o carro anda
+            // Prefer road segments that follow the car travel direction.
             const lb = (Math.atan2(vx, vy) * 180) / Math.PI;
             const diff = Math.abs(((lb - hdg + 540) % 360) - 180);
             if (diff > 100) d += 25;
@@ -299,7 +299,7 @@ class HoloMap3D {
     if (!this.roads || !this.waypoint || !this.player.ok) { this.setRoute(null); return; }
     const R = this.roads;
     const s = this.nearestLane(this.player.x, this.player.y, this.player.hdg);
-    // destino pode estar dentro de um prédio ou longe da rua: procura a faixa mais próxima até ~4 km
+    // The destination may be inside a building or far from a road; search for the nearest segment within about 4 km.
     const g = this.nearestLane(this.waypoint.x, this.waypoint.y, null, 40);
     if (!s || !g) { this.setRoute(null); return; }
     const endPt = (i) => { const o = R.laneOffset[i] + R.laneCount[i] - 1; return [R.points[o * 3], R.points[o * 3 + 1]]; };
@@ -354,7 +354,7 @@ class HoloMap3D {
       const o = R.laneOffset[i], c = R.laneCount[i];
       const last = idx === lanes.length - 1;
       const from = idx === 0 ? s.k + 1 : 0, to = last ? g.k : c - 1;
-      if (idx === 0 && last && g.k < s.k) return;  // destino atrás na mesma faixa
+      if (idx === 0 && last && g.k < s.k) return;  // Target is behind on the same lane.
       for (let k = from; k <= to; k++) pts.push([R.points[(o + k) * 3], R.points[(o + k) * 3 + 1], R.points[(o + k) * 3 + 2]]);
       if (last) pts.push(g.proj);
     });
@@ -382,7 +382,7 @@ class HoloMap3D {
     this.emit('route', r ? { dist: r.dist } : null);
   }
 
-  // distância restante ao longo da rota e desvio do jogador
+  // Remaining route distance and player deviation.
   routeProgress() {
     const r = this.route;
     if (!r) return null;
@@ -396,7 +396,7 @@ class HoloMap3D {
     return { remaining: rem, off: bd };
   }
 
-  // ---------- objetos dinâmicos ----------
+  // ---------- Dynamic objects ----------
   buildDynamic() {
     this.routeMat = new LineMaterial({ color: THEME.route, linewidth: 5, transparent: true, opacity: 0.95, dashed: true, dashSize: 18, gapSize: 6, depthTest: false });
     const arrowTex = spriteTex((g, s) => {
@@ -441,7 +441,7 @@ class HoloMap3D {
       el.className = 'map3d-district';
       el.textContent = name;
       this.labels.appendChild(el);
-      // centro em coordenadas do jogo (x, y, z)
+      // Center in game coordinates (x, y, z).
       this.districtLabels.push({ el, pos: toScene(d.center[0], d.center[1], d.center[2] + 40) });
     }
   }
@@ -473,10 +473,10 @@ class HoloMap3D {
 
   select(poi) {
     this.selected = poi || null;
-    this.markerScale = -1; // força reescala
+    this.markerScale = -1; // Force rescaling.
   }
 
-  // ícones encolhem com o zoom afastado (a cidade inteira não vira um mar de ícones)
+  // Icons shrink at wide zoom levels so the whole city does not become a sea of markers.
   scaleMarkers() {
     const f = Math.max(0.75, Math.min(1, 2000 / this.dist));
     const lim = this.tierLimit();
@@ -499,7 +499,7 @@ class HoloMap3D {
       if (v.z > 1 || Math.abs(v.x) > 1.2 || Math.abs(v.y) > 1.2) { sp.userData.want = isSel; continue; }
       cand.push({ sp, isSel, pri: isSel ? -1 : (p.q ? 0 : (p.tier || 0) + 1), x: ((v.x + 1) / 2) * this.w, y: ((1 - v.y) / 2) * this.h });
     }
-    // separação mínima entre ícones (px): os menos importantes somem quando encostam
+    // Minimum icon spacing (px): less important markers disappear when they overlap.
     cand.sort((a, b) => a.pri - b.pri);
     const gap = Math.max(16, (this.h || 600) * 0.036 * f * 1.1);
     const kept = [];
@@ -539,7 +539,7 @@ class HoloMap3D {
     if (pois) this.setPois(pois);
     this.waypoint = waypoint || null;
     if (!this.ready) return;
-    // recalcula a rota quando o destino muda, a cada 4 s, ou se saiu do caminho
+    // Recalculate the route when the destination changes, every four seconds, or after leaving the route.
     const now = performance.now();
     const wk = this.wpKey();
     if (!this.waypoint) { if (this.route) this.setRoute(null); return; }
@@ -554,7 +554,7 @@ class HoloMap3D {
     return p ? { remaining: p.remaining } : null;
   }
 
-  // ---------- câmera ----------
+  // ---------- Camera ----------
   setMode(o) {
     if (o.headingUp !== undefined) this.headingUp = o.headingUp;
     if (o.elev !== undefined) this.elev = o.elev;
@@ -586,7 +586,7 @@ class HoloMap3D {
     this.camera.updateProjectionMatrix();
   }
 
-  // ---------- montagem / loop ----------
+  // ---------- Setup / render loop ----------
   mount(container) {
     if (this.container === container) return;
     this.container = container;
@@ -612,7 +612,7 @@ class HoloMap3D {
     this.lastT = t;
     if (!this.visible || !this.container || this.lost) return;
     if (this.canvas.clientWidth !== this.w || this.canvas.clientHeight !== this.h) this.resize();
-    // interpolação do jogador
+    // Player interpolation.
     const k = Math.min(1, dt * 4);
     this.cur.x += (this.player.x - this.cur.x) * k;
     this.cur.y += (this.player.y - this.cur.y) * k;
@@ -658,7 +658,7 @@ class HoloMap3D {
     }
   }
 
-  // ---------- toque ----------
+  // ---------- Touch ----------
   screenToGround(sx, sy) {
     const ndc = new THREE.Vector2((sx / this.w) * 2 - 1, -(sy / this.h) * 2 + 1);
     const ray = new THREE.Raycaster();

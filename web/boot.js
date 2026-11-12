@@ -1,12 +1,12 @@
-// Neuroport — tela de "ESTABLISHING DATA LINK" na primeira abertura (por sessão do navegador).
-// Espera o primeiro estado do jogo e pré-carrega no cache tudo que o app mostra:
-// avatares dos contatos, ícones do mapa, fotos dos veículos, ofertas do Autofixer e o mapa 3D.
+// Neuroport — "ESTABLISHING DATA LINK" screen on first launch (once per browser session).
+// Wait for the first game state and preload the assets displayed by the app:
+// contact avatars, map icons, vehicle images, Autofixer offers and the 3D map.
 'use strict';
 
 (() => {
   const BOOT_KEY = 'neuroport.booted';
   let booted = false;
-  try { booted = sessionStorage.getItem(BOOT_KEY) === '1'; } catch { /* sem storage */ }
+  try { booted = sessionStorage.getItem(BOOT_KEY) === '1'; } catch { /* Storage is unavailable */ }
   const el = $('boot');
   if (booted || !el || !key) { if (el) el.remove(); return; }
   el.hidden = false;
@@ -39,7 +39,7 @@
     pct.textContent = String(p).padStart(3, '0') + '%';
   }
 
-  // carrega imagens em paralelo (até 6 por vez), com limite de tempo
+  // Load images in parallel (up to six at a time), with a timeout.
   function preload(urls, w, timeout = 9000) {
     urls = [...new Set(urls.filter(Boolean))];
     if (!urls.length) return Promise.resolve();
@@ -62,7 +62,7 @@
   const until = (fn, timeout) => new Promise((resolve) => {
     const t0 = performance.now();
     const tick = () => {
-      if (!$('pair').hidden) { el.remove(); return; }          // código inválido: a tela de parear assume
+      if (!$('pair').hidden) { el.remove(); return; }          // Invalid code: the pairing screen takes over.
       if (fn() || performance.now() - t0 > timeout) resolve(fn()); else setTimeout(tick, 120);
     };
     tick();
@@ -70,7 +70,7 @@
   const imgUrl = (o) => (o && o.img && o.img.part ? `avatar/${encodeURIComponent(o.img.part)}.png${o.img.atlas ? `?a=${encodeURIComponent(o.img.atlas)}` : ''}` : null);
 
   async function run() {
-    // 1. primeiro estado do jogo
+    // 1. Initial game state.
     line('link', '…');
     const got = await until(() => typeof state !== 'undefined' && state, 15000);
     const g = got ? game() : {};
@@ -78,7 +78,7 @@
     line('link', got ? 'OK' : 'ERR');
     done += 1; progress();
 
-    // 2. contatos (avatares)
+    // 2. Contacts (avatars).
     line('contacts', '…');
     if (inGame) {
       const av = (g.contacts || []).filter((c) => c.avatar)
@@ -88,7 +88,7 @@
     } else line('contacts', '—');
     done += 2; progress();
 
-    // 3. ícones do mapa e dos apps
+    // 3. Map and app icons.
     line('icons', '…');
     const icons = Object.keys(typeof FILTER_BY_VARIANT === 'object' ? FILTER_BY_VARIANT : {}).map((v) => `mapicons/${v}.png`);
     icons.push('icons/autofixer.png', 'icons/autofixer_wide.png');
@@ -97,7 +97,7 @@
     line('icons', 'OK');
     done += 2; progress();
 
-    // 4. garagem, Autofixer e El Capitan: o servidor extrai todas as imagens do jogo; espera terminar
+    // 4. Garage, Autofixer and El Capitan: wait for the server to extract the game images.
     line('garage', '…');
     if (inGame) {
       const t0 = performance.now();
@@ -116,7 +116,7 @@
     } else line('garage', '—');
     done += 2; progress();
 
-    // 5. mapa 3D (modelo da cidade)
+    // 5. 3D map (city model).
     line('map', '…');
     let mapState = window.Map3D && Map3D.ready ? 'ok' : null;
     if (!mapState) {
@@ -139,7 +139,7 @@
       setTimeout(() => el.remove(), 450);
     }, 380);
   }
-  // pular: tocar na tela depois de alguns segundos
+  // Skip: tap the screen after a few seconds.
   setTimeout(() => { $('boot-skip').hidden = false; }, 4000);
   $('boot-skip').addEventListener('click', () => {
     try { sessionStorage.setItem(BOOT_KEY, '1'); } catch { /* ok */ }

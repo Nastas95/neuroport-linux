@@ -1,5 +1,4 @@
-# Data extracted from Cyberpunk 2077 (CD PROJEKT content): generated from your own game install,
-# shipped only in the Nexus Mods download
+# Game data extracted from the user's Cyberpunk 2077 installation
 web/map3d/
 web/mapicons/
 web/avatars/
@@ -7,15 +6,15 @@ web/ringtone/*.ogg
 web/icons/autofixer*.png
 tools/gamefiles/atlas_index.json
 
-# third-party tools (downloaded separately, see README)
+# Third-party tools downloaded separately
 tools/open77_3dmap/
 tools/wolvenkit/
 tools/WolvenKit.Console-*.zip
 
-# local / build output
+# Local state and build output
 server/.token
 dist/
-release/
+release/stage-*/
 *.log
 __pycache__/
 *.pyc

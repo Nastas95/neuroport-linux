@@ -1,13 +1,14 @@
-// Textos do Neuroport OS (tela inicial, apps novos, ajustes, internet, câmera).
+// Neuroport OS strings (home screen, apps, settings, web and camera).
 'use strict';
 Object.assign(I18N.en, {
   appMessages: 'Comms', appPhone: 'Phone', tabMessages: 'MESSAGES', tabContacts: 'CONTACTS', needsReply: 'REPLY', waitingCall: 'CALL', lastMsgShort: 'Last:', openChat: 'MESSAGES', appMap: 'Map', appGigs: 'Quick Gig', appJournal: 'Journal',
   appVehicles: 'Garage', appRadio: 'Radio', appInternet: 'Autofixer', appCamera: 'Camera', appSettings: 'Settings',
   day: 'DAY', today: 'TODAY', balance: 'BALANCE', details: 'Details', loading: 'Syncing…', recLevel: 'Rec. level', optional: 'optional',
-  // mensagens
+  // Messages
   noMessages: 'No messages.', image: '[ image ]', sending: 'sending…', replies: 'REPLY',
+  commsEmptyTitle: 'SELECT A CONVERSATION', commsEmptyDesc: 'Choose a contact from the list to read the thread and available replies.',
   cantReply: 'This contact cannot be replied to', noReplies: 'No reply available right now',
-  // ajustes
+  // Settings
   setGame: 'IN GAME', setImmersive: 'Immersive mode',
   setImmersiveDesc: 'Hides the game minimap/GPS markers and blocks the game keys for radio, autodrive and calling vehicles — everything goes through Neuroport.',
   setPhone: 'PHONE', setFullscreen: 'Full screen', setFullscreenDesc: 'Hide the browser bars. Also on the button at the top right.',
@@ -21,7 +22,7 @@ Object.assign(I18N.en, {
   stAttrPts: 'attribute pts', stPerkPts: 'perk pts', stRelicPts: 'Relic pts', stAttributes: 'ATTRIBUTES', stStats: 'STATS',
   attrBody: 'Body', attrReflexes: 'Reflexes', attrTech: 'Technical Ability', attrInt: 'Intelligence', attrCool: 'Cool',
   stHealth: 'Health', stArmor: 'Armor', stCritChance: 'Crit chance', stCritDamage: 'Crit damage', stCapacity: 'Cyberware capacity', stCarry: 'Carry capacity', appShards: 'Shards', shardsSearch: 'Search shards…', shardsNew: 'new',
-  shardsOther: 'Other', shardsSave: 'SAVE ON PHONE', shardsDownload: 'DOWNLOAD .TXT', shardsSaved: '{n} shards saved on this phone.', shardsSaveFail: 'Could not save on this phone.', shardsSavedAt: 'Saved copy: {d}', shardsOffline: 'Reading the saved copy (offline)', shardsReadSaved: 'READ SAVED SHARDS', shcat_articles: 'Articles', shcat_notes: 'Notes', shcat_world: 'World', shcat_technology: 'Technology', shcat_literature_fiction: 'Literature', shcat_others: 'Other', shcat_leaflets: 'Leaflets', shcat_cyberpsycho: 'Cyberpsychos (Regina)', shcat_night_city_people: 'Night City people', shcat_poetry: 'Poetry', shardsNone: 'No shard matches the search.', shardsEmpty: 'No shards yet. Read shards in the game and they show up here.', bootTitle: 'ESTABLISHING DATA LINK', bootReady: 'DATA LINK ESTABLISHED', bootSkip: 'SKIP',
+  shardsSelectTitle: 'SELECT A SHARD', shardsSelectDesc: 'Choose a shard from the list to read its contents.', shardsOther: 'Other', shardsSave: 'SAVE ON PHONE', shardsDownload: 'DOWNLOAD .TXT', shardsSaved: '{n} shards saved on this phone.', shardsSaveFail: 'Could not save on this phone.', shardsSavedAt: 'Saved copy: {d}', shardsOffline: 'Reading the saved copy (offline)', shardsReadSaved: 'READ SAVED SHARDS', shcat_articles: 'Articles', shcat_notes: 'Notes', shcat_world: 'World', shcat_technology: 'Technology', shcat_literature_fiction: 'Literature', shcat_others: 'Other', shcat_leaflets: 'Leaflets', shcat_cyberpsycho: 'Cyberpsychos (Regina)', shcat_night_city_people: 'Night City people', shcat_poetry: 'Poetry', shardsNone: 'No shard matches the search.', shardsEmpty: 'No shards yet. Read shards in the game and they show up here.', bootTitle: 'ESTABLISHING DATA LINK', bootReady: 'DATA LINK ESTABLISHED', bootSkip: 'SKIP',
   boot_link: 'Handshake with the game', boot_contacts: 'Syncing contacts', boot_icons: 'Loading map icons',
   boot_garage: 'Garage & Autofixer', boot_map: 'Holo map of Night City', setImmHud: 'IMMERSIVE MODE: HUD ELEMENTS',
   setImmHudDesc: 'Everything stays on screen. Turn off what should disappear; it only hides while immersive mode is on.',
@@ -39,78 +40,24 @@ Object.assign(I18N.en, {
   setQuality: '3D buildings', setQualityDesc: 'Lite draws only rooftops (recommended for phones).', qLite: 'LITE', qFull: 'FULL',
   setAbout: 'ABOUT', setLang: 'Game language', setLink: 'Server', setForget: 'Forget pairing', setForgetDesc: 'Disconnect this phone and ask for the pairing code again.',
   immersiveOn: 'Immersive mode on', immersiveOff: 'Immersive mode off',
-  // internet
+  // Web
   netWelcome: 'Welcome to the Net', netShopDesc: 'Buy vehicles delivered to your garage', netForSale: 'for sale',
   netHomesDesc: 'Apartments in Night City', netListings: 'listings', netSites: 'SITES', netNoSites: 'No sites unlocked yet.',
   netNoOffers: 'Nothing listed right now.', owned: 'OWNED', buy: 'BUY', price: 'PRICE', balanceAfter: 'BALANCE AFTER', confirmBuy: 'CONFIRM PURCHASE',
   netHomesNote: 'Apartments are bought at the EZEstate terminal inside each building; here you can browse the listings.',
   netTerminalOnly: 'This page only opens on a terminal in the game.', netTerminalOnlyDesc: 'Neuroport lists the site but its pages are drawn by the game itself.',
   purchased: 'Purchase complete — check your garage',
-  // câmera
+  // Camera
   camHint: 'TAP TO OPEN PHOTO MODE IN GAME', gallery: 'GALLERY', noPhotos: 'No photos yet. Photos taken in photo mode show up here.',
   photoModeOpened: 'Photo mode opened in game',
   // erros novos
   err_already_owned: 'You already own this', err_not_available: 'Not for sale right now', err_no_money: 'Not enough eddies',
   err_no_reply: 'That reply is no longer available', err_no_entry: 'Conversation not found',
 });
-Object.assign(I18N.pt, {
-  appMessages: 'Comunicação', appPhone: 'Telefone', tabMessages: 'MENSAGENS', tabContacts: 'CONTATOS', needsReply: 'RESPONDER', waitingCall: 'LIGAR', lastMsgShort: 'Última:', openChat: 'MENSAGENS', appMap: 'Mapa', appGigs: 'Quick Gig', appJournal: 'Diário',
-  appVehicles: 'Garagem', appRadio: 'Rádio', appInternet: 'Autofixer', appCamera: 'Câmera', appSettings: 'Ajustes',
-  day: 'DIA', today: 'HOJE', balance: 'SALDO', details: 'Detalhes', loading: 'Sincronizando…', recLevel: 'Nível rec.', optional: 'opcional',
-  noMessages: 'Nenhuma mensagem.', image: '[ imagem ]', sending: 'enviando…', replies: 'RESPONDER',
-  cantReply: 'Não dá para responder este contato', noReplies: 'Nenhuma resposta disponível agora',
-  setGame: 'NO JOGO', setImmersive: 'Modo imersivo',
-  setImmersiveDesc: 'Esconde o minimapa/marcadores de GPS do jogo e bloqueia as teclas de rádio, piloto automático e chamar veículo — tudo passa pelo Neuroport.',
-  setPhone: 'CELULAR', setFullscreen: 'Tela cheia', setFullscreenDesc: 'Esconde as barras do navegador. Também pelo botão no canto superior direito.',
-  setAutoCar: 'Modo carro', setAutoCarDesc: 'Muda para a interface de carro sozinho quando você entra num veículo.',
-  setRing: 'Toque de chamada', setRingDesc: 'Toca o toque do jogo nas chamadas recebidas.',
-  setVibrate: 'Vibração', setVibrateDesc: 'Resposta tátil nos toques e chamadas.',
-  setNav: 'NAVEGAÇÃO', setNavMode: 'Navegação', navButtons: 'BOTÕES', navGestures: 'GESTOS',
-  setNavButtonsDesc: 'Botões de voltar, início e apps recentes embaixo.',
-  setNavGesturesDesc: 'Deslize da borda lateral para voltar, de baixo para cima para o início, e deslize e segure para os recentes.',
-  setNavSide: 'Ordem dos botões', setNavSideDesc: 'De que lado fica o botão de voltar.', noRecents: 'Nenhum app recente', newMessage: 'NOVA MENSAGEM', appStatus: 'Status', stLevel: 'NÍVEL', stLevelXp: 'Próximo nível', stCred: 'Street Cred',
-  stAttrPts: 'pts de atributo', stPerkPts: 'pts de perk', stRelicPts: 'pts Relic', stAttributes: 'ATRIBUTOS', stStats: 'ESTATÍSTICAS',
-  attrBody: 'Corpo', attrReflexes: 'Reflexos', attrTech: 'Habilidade Técnica', attrInt: 'Inteligência', attrCool: 'Frieza',
-  stHealth: 'Vida', stArmor: 'Armadura', stCritChance: 'Chance de crítico', stCritDamage: 'Dano crítico', stCapacity: 'Capacidade de cyberware', stCarry: 'Capacidade de carga', appShards: 'Shards', shardsSearch: 'Buscar nas shards…', shardsNew: 'novas',
-  shardsOther: 'Outras', shardsSave: 'SALVAR NO CELULAR', shardsDownload: 'BAIXAR .TXT', shardsSaved: '{n} shards salvas neste celular.', shardsSaveFail: 'Não deu para salvar neste celular.', shardsSavedAt: 'Cópia salva: {d}', shardsOffline: 'Lendo a cópia salva (offline)', shardsReadSaved: 'LER SHARDS SALVAS', shcat_articles: 'Artigos', shcat_notes: 'Notas', shcat_world: 'Mundo', shcat_technology: 'Tecnologia', shcat_literature_fiction: 'Literatura', shcat_others: 'Outras', shcat_leaflets: 'Panfletos', shcat_cyberpsycho: 'Ciberpsicopatas (Regina)', shcat_night_city_people: 'Pessoas de Night City', shcat_poetry: 'Poesia', shardsNone: 'Nenhuma shard com essa busca.', shardsEmpty: 'Nenhuma shard ainda. Leia shards no jogo e elas aparecem aqui.', bootTitle: 'ESTABLISHING DATA LINK', bootReady: 'DATA LINK ESTABLISHED', bootSkip: 'PULAR',
-  boot_link: 'Conectando ao jogo', boot_contacts: 'Sincronizando contatos', boot_icons: 'Carregando ícones do mapa',
-  boot_garage: 'Garagem e Autofixer', boot_map: 'Holomapa de Night City', setImmHud: 'MODO IMERSIVO: ELEMENTOS DO HUD',
-  setImmHudDesc: 'Tudo começa visível. Desligue o que deve sumir; só some com o modo imersivo ativado.',
-  immExtra: 'Neuroport (vale depois de carregar um save)',
-  imm_minimap: 'Minimapa', imm_hud_markers: 'Marcadores no mundo', imm_hk_phone: 'Botão do telefone (T)', imm_hk_car: 'Botão do carro (V)',
-  imm_hk_radio: 'Botão do rádio (Z)', imm_qt_up: 'Objetivo da missão no lugar do minimapa',
-  imm_hk_move: 'Cura (X) e item rápido no canto esquerdo',
-  imm_healthbar: 'Barra de vida', imm_stamina_oxygen: 'Stamina / oxigênio', imm_npc_healthbar: 'Vida dos inimigos',
-  imm_ammo_counter: 'Munição', imm_input_hints: 'Dicas de botões', imm_action_buttons: 'TODOS os atalhos (T, V, Z, X e item rápido)',
-  imm_activity_log: 'Registro de atividades', imm_crosshairs: 'Mira', imm_quest_tracker: 'Objetivo da missão',
-  imm_object_markers: 'Marcadores de objetos', imm_npc_names: 'Nomes dos NPCs', imm_wanted_level: 'Nível de procurado (NCPD)',
-  imm_npc_nameplates: 'Placas de nome dos NPCs', imm_crouch_indicator: 'Indicador de agachar', imm_vehicle_hud: 'HUD do veículo', appGallery: 'Galeria', photoModeOpening: 'Abrindo o modo foto no jogo…', msgUnread: 'NÃO LIDAS / AGUARDANDO RESPOSTA', msgRead: 'LIDAS',
-  setMap: 'MAPA', setMapMode: 'Marcadores do mapa', mapActive: 'DO JOGO', mapAll: 'INTERATIVO',
-  mapModeActiveDesc: 'Mapa do jogo: só os ícones que o jogo mostra agora (lojas e viagem rápida só por perto)', mapModeAllDesc: 'Mapa interativo: todos os lugares conhecidos',
-  setQuality: 'Prédios 3D', setQualityDesc: 'Leve desenha só os telhados (recomendado no celular).', qLite: 'LEVE', qFull: 'COMPLETO',
-  setAbout: 'SOBRE', setLang: 'Idioma do jogo', setLink: 'Servidor', setForget: 'Esquecer pareamento', setForgetDesc: 'Desconecta este celular e pede o código de pareamento de novo.',
-  immersiveOn: 'Modo imersivo ligado', immersiveOff: 'Modo imersivo desligado',
-  netWelcome: 'Bem-vindo à Net', netShopDesc: 'Compre veículos entregues na sua garagem', netForSale: 'à venda',
-  netHomesDesc: 'Apartamentos em Night City', netListings: 'anúncios', netSites: 'SITES', netNoSites: 'Nenhum site liberado ainda.',
-  netNoOffers: 'Nada anunciado agora.', owned: 'SEU', buy: 'COMPRAR', price: 'PREÇO', balanceAfter: 'SALDO DEPOIS', confirmBuy: 'CONFIRMAR COMPRA',
-  netHomesNote: 'Apartamentos são comprados no terminal EZEstate de cada prédio; aqui você vê os anúncios.',
-  netTerminalOnly: 'Esta página só abre num terminal dentro do jogo.', netTerminalOnlyDesc: 'O Neuroport lista o site, mas as páginas são desenhadas pelo próprio jogo.',
-  purchased: 'Compra concluída — confira sua garagem',
-  camHint: 'TOQUE PARA ABRIR O MODO FOTO NO JOGO', gallery: 'GALERIA', noPhotos: 'Nenhuma foto ainda. As fotos do modo foto aparecem aqui.',
-  photoModeOpened: 'Modo foto aberto no jogo',
-  err_already_owned: 'Você já tem este item', err_not_available: 'Não está à venda agora', err_no_money: 'Eddies insuficientes',
-  err_no_reply: 'Essa resposta não está mais disponível', err_no_entry: 'Conversa não encontrada',
-});
 Object.assign(I18N.en, {
   setWall: 'WALLPAPER', setWallDesc: 'Use a photo from the gallery (game photo mode) behind the home screen.',
-  wallDefault: 'DEFAULT', wallUse: 'SET AS WALLPAPER', wallSet: 'Wallpaper changed',
+  wallDefault: 'DEFAULT', wallUse: 'SET AS WALLPAPER', wallSet: 'Wallpaper changed', wallSetFail: 'Could not apply this photo as wallpaper',
   immAll: 'Hide everything', immAllDesc: 'Turns every HUD element below off at once (on = all hidden).',
   wallAdjust: 'ADJUST FRAMING', wallAdjustHint: 'Drag to move · pinch or use the slider to zoom', wallReset: 'CENTER', wallDone: 'DONE',
-});
-Object.assign(I18N.pt, {
-  setWall: 'FUNDO DE TELA', setWallDesc: 'Use uma foto da galeria (modo foto do jogo) atrás da tela inicial.',
-  wallDefault: 'PADRÃO', wallUse: 'USAR COMO FUNDO', wallSet: 'Fundo de tela alterado',
-  immAll: 'Esconder tudo', immAllDesc: 'Desliga todos os elementos do HUD abaixo de uma vez (ligado = tudo escondido).',
-  wallAdjust: 'AJUSTAR ENQUADRAMENTO', wallAdjustHint: 'Arraste para mover · pinça ou o controle para dar zoom', wallReset: 'CENTRALIZAR', wallDone: 'PRONTO',
 });
 applyI18n();

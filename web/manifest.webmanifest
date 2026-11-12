@@ -1,7 +1,7 @@
 {
   "name": "Neuroport",
   "short_name": "Neuroport",
-  "description": "Segunda tela para o celular do Cyberpunk 2077",
+  "description": "Second screen companion for Cyberpunk 2077",
   "start_url": "/",
   "display": "fullscreen",
   "orientation": "portrait",

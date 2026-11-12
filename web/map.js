@@ -1,13 +1,13 @@
-// Mapa tático (radar) desenhado em canvas.
-// Coordenadas do jogo: x = leste, y = norte (metros). O yaw do jogo é tratado
-// como 0 = norte, positivo = anti-horário; o rumo de bússola fica em -yaw.
+// Tactical map (radar) rendered on a canvas.
+// Game coordinates: x = east, y = north (meters). Game yaw is treated as
+// 0 = north, positive = counterclockwise; compass heading is -yaw.
 'use strict';
 
 const CAT_COLORS = { ncpd: '#4f8bff', gig: '#f7e05a', tarot: '#c77dff', side: '#ff9f43' };
 const WP_COLOR = '#5ef6ff';
 
 const HoloMap = (() => {
-  const ZOOMS = [100, 200, 400, 800, 1600, 3200, 6400]; // metros do centro até a borda menor
+  const ZOOMS = [100, 200, 400, 800, 1600, 3200, 6400]; // Meters from the center to the shorter edge.
   let canvas, ctx, dpr = 1, W = 0, H = 0;
   let zoomIdx = 2;
   let headingUp = false;
@@ -50,7 +50,7 @@ const HoloMap = (() => {
   }
 
   function niceStep(px) {
-    // passo de grade em metros que dá ~40px na tela
+    // Grid spacing in meters, targeting about 40 px on screen.
     const m = 40 / px;
     for (const s of [25, 50, 100, 250, 500, 1000, 2500]) if (s >= m) return s;
     return 5000;
@@ -74,7 +74,7 @@ const HoloMap = (() => {
   function draw(now) {
     const dt = Math.min(0.1, (now - lastT) / 1000 || 0);
     lastT = now;
-    // interpolação suave entre as atualizações do jogo
+    // Smooth interpolation between game updates.
     const k = Math.min(1, dt * 5);
     cur.x += (target.x - cur.x) * k;
     cur.y += (target.y - cur.y) * k;
@@ -120,7 +120,7 @@ const HoloMap = (() => {
     }
     ctx.restore();
 
-    // anéis de distância
+    // Distance rings.
     ctx.strokeStyle = 'rgba(255,97,88,0.22)';
     ctx.setLineDash([2, 6]);
     ctx.font = '11px "Share Tech Mono", monospace';
@@ -143,7 +143,7 @@ const HoloMap = (() => {
       }
     }
 
-    // linha até o waypoint
+    // Line to the waypoint.
     if (waypoint) {
       const [wx, wy] = worldToScreen(waypoint.x, waypoint.y);
       ctx.strokeStyle = 'rgba(94,246,255,0.55)';
@@ -180,7 +180,7 @@ const HoloMap = (() => {
       }
     }
 
-    // waypoint (com pulso); se fora da tela, seta na borda
+    // Waypoint (pulsing); show an edge arrow when it is off-screen.
     if (waypoint) {
       let [wx, wy] = worldToScreen(waypoint.x, waypoint.y);
       const pad = 18;
@@ -203,7 +203,7 @@ const HoloMap = (() => {
       }
     }
 
-    // jogador
+    // Player.
     ctx.save();
     ctx.translate(W / 2, H / 2);
     ctx.rotate(headingUp ? 0 : rad(cur.hdg));
@@ -215,7 +215,7 @@ const HoloMap = (() => {
     ctx.restore();
     ctx.shadowBlur = 0;
 
-    // indicador de norte no modo bússola
+    // North indicator in compass mode.
     if (headingUp) {
       const r = Math.min(W, H) / 2 - 16;
       const a = rot() - Math.PI / 2;
@@ -253,7 +253,7 @@ const HoloMap = (() => {
       onPick && onPick(res);
     });
     canvas.addEventListener('wheel', (e) => { e.preventDefault(); zoom(e.deltaY > 0 ? 1 : -1); }, { passive: false });
-    // pinça para zoom
+    // Pinch to zoom.
     const pts = new Map();
     let pinch0 = 0;
     canvas.addEventListener('pointerdown', (e) => { pts.set(e.pointerId, [e.clientX, e.clientY]); });
@@ -279,7 +279,7 @@ const HoloMap = (() => {
       const hdg = ((-(pos.yaw || 0)) % 360 + 360) % 360;
       const jump = Math.hypot(pos.x - target.x, pos.y - target.y);
       target.x = pos.x; target.y = pos.y; target.hdg = hdg;
-      if (!cur.ok || jump > 250) { // primeira leitura ou viagem rápida: sem animação
+      if (!cur.ok || jump > 250) { // First reading or fast travel: do not animate.
         cur.x = pos.x; cur.y = pos.y; cur.hdg = hdg; cur.ok = true;
         if (jump > 250) trail.length = 0;
       }

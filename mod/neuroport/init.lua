@@ -1,43 +1,43 @@
--- Neuroport — mod Cyber Engine Tweaks
--- Lê comandos de inbox.txt (escrito pelo servidor no PC) e grava o estado do
--- jogo em state.json. Tudo dentro da pasta do próprio mod (sandbox do CET).
+-- Neuroport — Cyber Engine Tweaks mod
+-- Reads commands from inbox.txt (written by the PC server) and writes game state to
+-- state.json. All files stay inside the mod folder (CET sandbox).
 --
--- Todas as chamadas ao jogo ficam dentro de pcall: se algo mudar num patch,
--- o recurso afetado para de funcionar mas o resto continua. Os erros aparecem
--- no console do CET e na janelinha "Neuroport" do overlay.
+-- All game calls are wrapped in pcall: if a patch changes something,
+-- the affected feature stops working while the rest continues. Errors appear
+-- in the CET console and in the small "Neuroport" overlay window.
 
 local VERSION = "1.0"
 local INBOX = "inbox.txt"
 local STATE = "state.json"
 
-local POLL_EVERY = 0.25   -- s: ler comandos
-local WRITE_EVERY = 0.4   -- s: gravar estado (posição no mapa)
-local LISTS_EVERY = 6.0   -- s: recarregar veículos/contatos/idioma
-local POIS_EVERY = 3.0    -- s: varrer marcadores do mapa (gigs, NCPD...)
+local POLL_EVERY = 0.25   -- seconds: poll commands.
+local WRITE_EVERY = 0.4   -- seconds: write state (map position).
+local LISTS_EVERY = 6.0   -- seconds: reload vehicles, contacts and language.
+local POIS_EVERY = 3.0    -- seconds: scan map markers (gigs, NCPD jobs, etc.).
 
 local clock, nextPoll, nextWrite, nextLists, nextPois = 0, 0, 0, 0, 0
-local gameLang = nil       -- "pt-br", "en-us"...
+local gameLang = nil       -- Game language code reported by Cyberpunk.
 local district = nil
-local pois = {}            -- marcadores próximos já classificados
+local pois = {}            -- Nearby markers, already classified.
 local poisStatus = "init"  -- "ok" | "no_codeware" | "error"
-local poisDiag = {}        -- diagnóstico: total, variantes vistas, primeiro erro
+local poisDiag = {}        -- Diagnostics: total count, observed variants and first error.
 local waypoint = nil       -- { id = NewMappinID, x, y, z, cat, label }
 local wasInGame = false
 local shopAt, hudApplied = nil, false
-local offers, offerIndex, apartments, sites = {}, {}, {}, {}   -- loja/internet (lidas no bloco da loja)
-local stations = {}       -- estações de rádio { station, ui, name }
+local offers, offerIndex, apartments, sites = {}, {}, {}, {}   -- Shop and internet offers (read by the shop block).
+local stations = {}       -- Radio stations { station, ui, name }.
 local hornOffAt = nil
 local lastCmdId = 0
 local acks = {}
-local errors = {}          -- chave -> mensagem (para o overlay)
+local errors = {}          -- key -> message (for the overlay).
 local warned = {}
 local cache = { vehicles = {}, contacts = {} }
 local vehicleIndex = {}    -- id -> { recordID, vehicleType, name }
 local contactIndex = {}    -- id -> { callId, name }
-local probe = {}          -- diagnóstico gravado em probe.json
-local journal             -- diário (declarado cedo: o mapa usa os pinos das missões)
+local probe = {}          -- Diagnostics written to probe.json.
+local journal             -- Journal (declared early because the map uses mission markers).
 local activeVehicle = nil
-local localCall = nil      -- { contact, callId, at } quando a ligação partiu daqui
+local localCall = nil      -- { contact, callId, at } when the call originated here.
 local overlayOpen = false
 local stats = { cmds = 0, writes = 0 }
 
@@ -89,8 +89,8 @@ local function round(n)
   return math.floor(n + 0.5)
 end
 
--- "LocKey#123" / CName de localização -> texto no idioma do jogo
--- textos localizados do jogo trazem a quebra de linha como barra + n (dois caracteres)
+-- "LocKey#123" / localization CName -> text in the game language.
+-- Localized game text encodes line breaks as backslash-n (two characters).
 local function fixNl(s)
   if type(s) ~= 'string' then return s end
   return (s:gsub('\\r\\n', '\n'):gsub('\\n', '\n'))
@@ -111,7 +111,7 @@ function L0(v)
     if ok and t and t ~= "" and t ~= s then return t end
     return nil
   end
-  -- chave secundária de tradução ("Gameplay-Devices-Radio-RadioStationJazz")
+  -- Secondary translation key ("Gameplay-Devices-Radio-RadioStationJazz").
   if not s:find("%s") and s:find("%-") then
     local ok, t = pcall(GetLocalizedText, s)
     if ok and t and t ~= "" and t ~= s then return t end
@@ -122,7 +122,7 @@ function L0(v)
 end
 
 ---------------------------------------------------------------------------
--- JSON (só o encoder; os comandos chegam em texto simples)
+-- JSON (encoder only; commands arrive as plain text).
 ---------------------------------------------------------------------------
 local escapes = { ['"'] = '\\"', ['\\'] = '\\\\', ['\b'] = '\\b', ['\f'] = '\\f', ['\n'] = '\\n', ['\r'] = '\\r', ['\t'] = '\\t' }
 local function encStr(s)
@@ -157,7 +157,7 @@ local function encode(v)
 end
 
 ---------------------------------------------------------------------------
--- estado do jogo
+-- Game state.
 ---------------------------------------------------------------------------
 local function getPlayer()
   local player = Game.GetPlayer()
@@ -200,7 +200,7 @@ local function readStatus(player)
     pcall(function() v = ss:GetStatValue(id, gamedataStatType[name]) end)
     return v
   end
-  -- atributos (Body = Strength no jogo)
+  -- Attributes (Body corresponds to Strength in the game).
   st.attr = { body = stat("Strength"), reflexes = stat("Reflexes"), tech = stat("TechnicalAbility"),
               int = stat("Intelligence"), cool = stat("Cool") }
   for k, v in pairs(st.attr) do st.attr[k] = v and round(v) or nil end
@@ -215,7 +215,7 @@ local function readStatus(player)
   end
   pcall(function() st.healthNow = round(Game.GetStatPoolsSystem():GetStatPoolValue(id, gamedataStatPoolType.Health, false)) end)
   pcall(function() st.capacityUsed = round(Game.GetStatPoolsSystem():GetStatPoolValue(id, gamedataStatPoolType.Humanity, false)) end)
-  -- pontos livres e experiência do nível
+  -- Available attribute points and level experience.
   pcall(function()
     local dev = Game.GetScriptableSystemsContainer():Get("PlayerDevelopmentSystem")
     local data = dev:GetDevelopmentData(player)
@@ -235,7 +235,7 @@ local function readStatus(player)
   return st
 end
 
--- ---------- veículos ----------
+-- ---------- Vehicles ----------
 local function recordKey(rid, fallback)
   local ok, k = pcall(function() return string.format("%d:%d", rid.hash, rid.length) end)
   if ok and k then return k end
@@ -244,7 +244,7 @@ local function recordKey(rid, fallback)
   return "veh" .. tostring(fallback)
 end
 
--- UIIcon (atlas + parte) de um registro: o servidor extrai a imagem do jogo
+-- UIIcon (atlas + part) for a record; the server extracts the game image.
 local function uiIcon(ic)
   local img = nil
   pcall(function()
@@ -258,7 +258,7 @@ local function uiIcon(ic)
   return img
 end
 
--- ficha do veículo (a mesma que o jogo mostra): VehicleUIData + registro do veículo. Em cache por registro.
+-- Vehicle details (matching the in-game display): VehicleUIData plus the vehicle record. Cached per record.
 local VEH_UI_FIELDS = { hp = "horsepower", mass = "mass", drive = "driveLayout", year = "productionYear",
   info = "info", top = "topSpeed", accel = "acceleration" }
 local vehInfoCache = {}
@@ -332,7 +332,7 @@ local function readVehicles()
       end)
       if not name then
         local ok, s = pcall(function() return TDBID.ToStringDEBUG(rid) end)
-        name = (ok and s and s ~= "") and s:gsub("^Vehicle%.", "") or ("Veículo " .. i)
+        name = (ok and s and s ~= "") and s:gsub("^Vehicle%.", "") or ("Vehicle " .. i)
       end
       local isBike = enumIs(v.vehicleType, gamedataVehicleType.Bike)
       out[#out + 1] = { id = id, name = name, maker = maker, type = isBike and "bike" or "car", img = img, info = info }
@@ -350,7 +350,7 @@ local function summon(id)
   if not v then return false, "not_found" end
   local vs = Game.GetVehicleSystem()
 
-  -- 1) torna o veículo escolhido o "ativo" do tipo dele (o que o V chama).
+  -- 1) Make the selected vehicle the active vehicle of its type (the one V summons).
   --    GarageVehicleID = { name: CName, recordID: TweakDBID }
   local toggled = false
   local attempts = {
@@ -371,7 +371,7 @@ local function summon(id)
     warnOnce("ativar_veiculo_" .. i, err)
   end
 
-  -- 2) chama ESTE veículo: SpawnPlayerVehicle(tipo, recordID, sóEmRuaVálida) -> Bool
+  -- 2) Summon THIS vehicle: SpawnPlayerVehicle(type, recordID, validRoadOnly) -> Bool.
   local ok, spawned = pcall(function() return vs:SpawnPlayerVehicle(v.vehicleType, v.recordID, false) end)
   if not ok then
     warnOnce("chamar_veiculo", spawned)
@@ -389,7 +389,7 @@ local function summon(id)
   return true, toggled and "ok" or "summon_fallback"
 end
 
--- ---------- contatos ----------
+-- ---------- Contacts ----------
 function gtimeC(t)
   local out = nil
   pcall(function() out = { d = t:Days(), h = t:Hours(), m = t:Minutes() } end)
@@ -429,7 +429,7 @@ local function contactsFromJournal(jm)
       pcall(function() c.localizedName = e:GetLocalizedName(jm) end)
       pcall(function() c.avatarID = e:GetAvatarID(jm) end)
       pcall(function() c.isCallable = e:IsCallable(jm) end)
-      -- conversa: última mensagem, horário e não lidas
+      -- Conversation: last message, timestamp and unread count.
       local msgs = {}
       local okM, m1 = pcall(function() return jm:GetFlattenedMessagesAndChoices(e) end)
       if okM and type(m1) == "table" then msgs = m1 else pcall(function() jm:GetFlattenedMessagesAndChoices(e, msgs, {}) end) end
@@ -453,8 +453,8 @@ local function contactsFromJournal(jm)
 end
 
 local function contactsFromMessenger(jm)
-  -- o celular do jogo junta várias listas (contatos de ligação + todas as conversas):
-  -- aqui todas as fontes são somadas, sem repetir
+  -- The in-game phone combines several lists (call contacts and all conversations):
+  -- combine all sources here without duplicates.
   local sources = {
     function() return MessengerUtils.GetCallableAndNonCallableContacts(jm) end,
     function() return MessengerUtils.GetContactDataArray(jm, true, false, nil) end,
@@ -493,7 +493,7 @@ local function readContacts()
   local jm = Game.GetJournalManager()
   if not jm then return end
   local list = contactsFromMessenger(jm)
-  if not list then warnOnce("contatos", "nenhuma fonte de contatos funcionou") return end
+  if not list then warnOnce("contatos", "no contact source worked") return end
 
   local out, index, seen = {}, {}, {}
   for i, raw in ipairs(list) do
@@ -506,7 +506,7 @@ local function readContacts()
     if name ~= "" and not seen[id] then
       seen[id] = true
       local preview = L(field(c, "lastMesssagePreview", "lastMessagePreview"))
-      -- avatar: avatarID -> UIIcon (atlas + nome da parte); o servidor extrai a imagem
+      -- Avatar: avatarID -> UIIcon (atlas and part name); the server extracts the image.
       local avatar, atlas
       pcall(function()
         local rec = TweakDB:GetRecord(field(c, "avatarID"))
@@ -539,7 +539,7 @@ local function readContacts()
   cache.contacts, contactIndex = out, index
 end
 
--- ---------- chamadas ----------
+-- ---------- Calls ----------
 local function phoneSystem()
   return Game.GetScriptableSystemsContainer():Get("PhoneSystem")
 end
@@ -566,8 +566,8 @@ local function startCall(id)
   return true, "ok"
 end
 
-local lastBBCall = nil -- última leitura do blackboard (nome do contato em linha)
-local lastCallInfo = nil -- PhoneCallInformation da chamada atual (para atender/recusar)
+local lastBBCall = nil -- Last blackboard read (contact name on the current line).
+local lastCallInfo = nil -- PhoneCallInformation for the current call (accept/reject).
 
 local function endCall()
   local target = (localCall and localCall.callId) or lastBBCall
@@ -581,8 +581,8 @@ local function endCall()
   return true, "ok"
 end
 
--- Atende (reject=false) ou recusa (reject=true) a chamada recebida, como o
--- botão do jogo faz: PickupPhoneRequest{CallInformation, shouldBeRejected}.
+-- Answer (reject=false) or decline (reject=true) an incoming call, as the
+-- in-game button does: PickupPhoneRequest{CallInformation, shouldBeRejected}.
 local function pickUp(reject)
   local info = lastCallInfo
   if not info then return false, "no_incoming" end
@@ -632,7 +632,7 @@ local function readCall()
   if result and result.contact then lastBBCall = result.contact end
   if result and result.state == "idle" then lastBBCall = nil; lastCallInfo = nil end
 
-  -- Sem blackboard (ou jogo ainda não refletiu a chamada): usa o que pedimos.
+  -- Without a blackboard (or before the game reflects the call), use the requested state.
   if (not result or result.state == "idle") and localCall then
     if clock - localCall.at < 8 then
       return { state = "calling", contact = localCall.contact, name = localCall.name }
@@ -642,7 +642,7 @@ local function readCall()
   if not result then return { state = "idle" } end
 
   if result.contact then
-    -- converte id do jornal para o id da nossa lista (se possível)
+    -- Convert the journal ID to the ID used by our list, when possible.
     for id, c in pairs(contactIndex) do
       if c.callId == result.contact or id == result.contact then
         result.contact, result.name = id, c.name
@@ -654,8 +654,8 @@ local function readCall()
   return result
 end
 
--- ---------- idioma ----------
--- Mesmo método do mod Simple Location Manager: a configuração "/language" do jogo.
+-- ---------- Language ----------
+-- Same approach as the Simple Location Manager mod: use the game "/language" setting.
 local function readLanguage()
   local ok, code = pcall(function()
     local var = Game.GetSettingsSystem():GetVar("/language", "OnScreen")
@@ -667,7 +667,7 @@ local function readLanguage()
   if ok and type(code) == "string" and code ~= "" then gameLang = string.lower(code) end
 end
 
--- ---------- posição / distrito ----------
+-- ---------- Position / District ----------
 local function readPosition(player)
   local pos = {}
   try("posicao", function()
@@ -688,30 +688,30 @@ local function readPosition(player)
   return pos
 end
 
--- ---------- marcadores do mapa (Quick Gig + Mapa) ----------
+-- ---------- Map markers (Quick Gig + Map) ----------
 -- Precisa do Codeware: MappinSystem.GetAllMappins() vem dele.
--- Só estes tipos interessam; o app traduz cada um para um filtro do mapa.
--- (Nomes conferidos nos scripts do jogo 2.5.)
+-- Only these types matter; the app maps each one to a map filter.
+-- (Names checked against the game 2.5 scripts.)
 local WANTED = {
-  -- missões ativas (objetivos que o jogo marca no mapa)
+  -- Active jobs (objectives marked on the map by the game).
   "DefaultQuestVariant", "DynamicEventVariant", "ConversationVariant", "PhoneCallVariant",
   -- trabalhos
   "BountyHuntVariant", "RetrievingVariant", "ThieveryVariant", "SabotageVariant",
   "ClientInDistressVariant", "SOSsignalVariant", "CourierVariant", "Zzz09_CourierSandboxActivityVariant",
   "ConvoyVariant", "QuestGiverVariant", "ExclamationMarkVariant",
-  -- mundo aberto
+  -- Open world.
   "FixerVariant", "Zzz06_NCPDGigVariant", "GangWatchVariant", "OutpostVariant", "HiddenStashVariant",
   "HuntForPsychoVariant", "QuestionMarkVariant", "TarotVariant", "Zzz18_RacingVariant",
   "Zzz12_WorldEncounterVariant", "Zzz11_RoadBlockadeVariant", "Zzz16_RelicDeviceBasicVariant",
   "Zzz16_RelicDeviceSpecialVariant",
-  -- serviços
+  -- Services.
   "ServicePointDropPointVariant", "ServicePointClothesVariant", "ServicePointRipperdocVariant",
   "ServicePointCyberwareVariant", "ServicePointNetTrainerVariant", "ServicePointGunsVariant",
   "ServicePointMeleeTrainerVariant", "ServicePointMedsVariant", "ServicePointFoodVariant",
   "ServicePointBarVariant", "ServicePointProstituteVariant", "ServicePointJunkVariant",
   "ServicePointTechVariant", "Zzz14_ServicePointBlackMarketVariant", "Zzz21_ServicePointGlamdocVariant",
   "WanderingMerchantVariant",
-  -- veículos
+  -- Vehicles.
   "Zzz01_CarForPurchaseVariant", "Zzz02_MotorcycleForPurchaseVariant",
   -- outros
   "FastTravelVariant", "Zzz17_NCARTVariant", "Zzz19_DelamainTaxiVariant", "ApartmentVariant",
@@ -735,15 +735,15 @@ end
 local completedPhase = nil
 pcall(function() completedPhase = eint(gamedataMappinPhase.CompletedPhase) end)
 
-local MAP_RADIUS = 20000 -- m: a cidade inteira (o celular mostra o mapa todo)
-local PER_TYPE = 4       -- além disso, os N mais próximos de cada tipo (Quick Gig)
+local MAP_RADIUS = 20000 -- meters: the entire city (the phone displays the full map).
+local PER_TYPE = 4       -- plus the N nearest markers of each type (Quick Gig).
 local MAX_POIS = 900
 
--- ---------- El Capitan: lugares onde os carros dos contratos já apareceram ----------
--- O jogo sorteia o contrato entre pontos fixos (a maioria em Dogtown) e só marca no mapa o atual.
--- O mod guarda cada ponto visto (arquivo próprio), para o app mostrar onde procurar.
+-- ---------- El Capitan: locations where contract vehicles have appeared ----------
+-- The game randomly selects a contract from fixed locations (mostly in Dogtown) and marks only the current one.
+-- The mod saves every location seen so the app can show where to look.
 local CAPSPOTS_FILE = "neuroport_capspots.txt"
-local capSpots, capSpotsLoaded = {}, false   -- chave "x:y" (grade de 25 m) -> { x, y, z, n }
+local capSpots, capSpotsLoaded = {}, false   -- "x:y" key (25 m grid) -> { x, y, z, n }.
 local function loadCapSpots()
   capSpotsLoaded = true
   local f = io.open(CAPSPOTS_FILE, "r")
@@ -763,7 +763,7 @@ local function saveCapSpots()
   for _, s in pairs(capSpots) do f:write(string.format("%.1f,%.1f,%.1f,%d\n", s.x, s.y, s.z or 0, s.n)) end
   f:close()
 end
-local capSpotsLive = {}   -- pontos marcados agora (para contar cada aparição uma vez)
+local capSpotsLive = {}   -- Currently marked points (count each appearance only once).
 local function noteCapSpots(found)
   if not capSpotsLoaded then loadCapSpots() end
   local live, changed = {}, false
@@ -788,14 +788,14 @@ local function capSpotList()
   return out
 end
 
-local ftNames = {}   -- chave do marcador de viagem rápida -> nome (ou false se o jogo não deu)
+local ftNames = {}   -- Fast-travel marker key -> name (or false if the game has no name).
 local function scanPois(player)
   if not variantName then buildVariantTable() end
   local ms = Game.GetMappinSystem()
   local ok, list = pcall(function() return ms:GetAllMappins() end)
   if not ok or type(list) ~= "table" then
     poisStatus = "no_codeware"
-    warnOnce("mapa", "GetAllMappins indisponível (instale o Codeware)")
+    warnOnce("mapa", "GetAllMappins is unavailable (install Codeware)")
     pois = {}
     return
   end
@@ -813,7 +813,7 @@ local function scanPois(player)
       end
       local v = variantName[vi]
       if not v then
-        -- variantes que o app não conhece (para descobrir tipos novos de gig etc.)
+        -- Variants unknown to the app (used to discover new gig types, etc.).
         local nm = nil
         pcall(function() nm = EnumValueToString("gamedataMappinVariant", vi) end)
         nm = tostring(nm or vi)
@@ -832,11 +832,11 @@ local function scanPois(player)
       local p = m:GetWorldPosition()
       if not p or (p.x == 0 and p.y == 0) then return end
       local key = v .. math.floor(p.x) .. ":" .. math.floor(p.y)
-      if seen[key] then return end -- o mesmo pin pode aparecer duas vezes
+      if seen[key] then return end -- The same pin can appear twice.
       seen[key] = true
       local dx, dy = p.x - pp.x, p.y - pp.y
       local nm = nil
-      -- nome do ponto de viagem rápida (o app usa para localizar os pontos dos guias do El Capitan)
+      -- Fast-travel location name (used by the app to find El Capitan guide locations).
       if v == "FastTravel" then
         nm = ftNames[key]
         if nm == nil then
@@ -871,12 +871,12 @@ local function scanPois(player)
     end
     if #out >= MAX_POIS then break end
   end
-  -- marcadores de missão: só valem se baterem com um objetivo ativo do diário
+  -- Job markers are included only when they match an active journal objective.
   local QUESTISH = { DefaultQuest = true, DynamicEvent = true, Conversation = true, PhoneCall = true,
                      ExclamationMark = true, HiddenStash = true, QuestGiver = true }
   local qpins = (journal and journal.pins) or {}
   local used = {}
-  -- gigs primeiro: um gig só está ativo se o diário tiver um objetivo ativo no mesmo lugar
+  -- Gigs first: a gig is active only if the journal has an active objective at the same location.
   local GIGISH = { BountyHunt = true, Retrieving = true, Thievery = true, Sabotage = true, ClientInDistress = true,
                    SOSsignal = true, Courier = true, CourierSandboxActivity = true, Convoy = true }
   for _, o in ipairs(out) do
@@ -901,7 +901,7 @@ local function scanPois(player)
       for i, p in ipairs(qpins) do
         local d = math.sqrt((p.x - o._x) ^ 2 + (p.y - o._y) ^ 2)
         if d < 40 then near = true end
-        -- um marcador por ponto: os repetidos no mesmo lugar saem
+        -- One marker per location; duplicates at the same coordinates are removed.
         if d < bd and not used[i] then best, bd = i, d end
       end
       if not best and near then o.dup = true end
@@ -914,7 +914,7 @@ local function scanPois(player)
     end
     o._x, o._y = nil, nil
   end
-  -- objetivo ativo sem marcador correspondente na lista: entra mesmo assim
+  -- Include active objectives even when no corresponding marker exists in the list.
   for i, p in ipairs(qpins) do
     if not used[i] then
       out[#out + 1] = { v = "DefaultQuest", x = round(p.x), y = round(p.y), z = round(p.z), ph = "d", q = p.q, qt = p.qt }
@@ -925,9 +925,9 @@ local function scanPois(player)
   errors.mapa = nil
 end
 
--- ---------- diário (Journal) ----------
--- Funções com parâmetro "out" (GetQuests, GetChildren): o CET devolve o array
--- como valor de retorno extra. Para não depender disso, testa as duas formas.
+-- ---------- Journal ----------
+-- Functions with an "out" parameter (GetQuests, GetChildren): CET returns the array
+-- as an additional return value. Check both forms to avoid relying on one behavior.
 local function firstTable(...)
   for i = 1, select("#", ...) do
     local v = select(i, ...)
@@ -988,7 +988,7 @@ local function children(jm, e, filter)
   end)
 end
 
--- posições dos marcadores dos objetivos ativos (o mesmo que o mapa do jogo desenha)
+-- Marker positions for active objectives (the same positions drawn by the game map).
 local function hashU32(h)
   h = tonumber(h)
   if h and h < 0 then h = h + 4294967296 end
@@ -1020,7 +1020,7 @@ local function objectivePins(jm, obj)
     end
   end
   if #out == 0 then
-    -- um a um: filhos do objetivo que são marcadores
+    -- One by one: objective children that are markers.
     for _, pin in ipairs(children(jm, obj, stateFilter(true))) do
       pcall(function()
         local ph = hashU32(jm:GetEntryHash(pin))
@@ -1054,7 +1054,7 @@ local function activeObjectives(jm, quest)
   return list
 end
 
--- primeiro objetivo ativo da missão (fase -> objetivo)
+-- First active job objective (phase -> objective).
 local function activeObjective(jm, quest)
   local f = stateFilter(true)
   for _, phase in ipairs(children(jm, quest, f)) do
@@ -1077,8 +1077,8 @@ local function readJournal()
     if out then return jm:GetQuests(ctx, out) end
     return jm:GetQuests(ctx)
   end)
-  if #quests == 0 then warnOnce("diario", "GetQuests não retornou missões") end
-  -- todas as missões (inclusive concluídas), relidas a cada minuto: alimenta a checklist do El Capitan
+  if #quests == 0 then warnOnce("diario", "GetQuests returned no jobs") end
+  -- All jobs (including completed ones), refreshed every minute to populate El Capitan's checklist.
   if not probe.allQuests or os.clock() - (allQuestsAt or -999) > 60 then
     allQuestsAt = os.clock()
     probe.allQuests = {}
@@ -1110,7 +1110,7 @@ local function readJournal()
     capStats = cap
   end
 
-  -- missão rastreada: objetivo -> fase -> missão
+  -- Tracked job: objective -> phase -> job.
   local trackedId = nil
   pcall(function()
     local obj = jm:GetTrackedEntry()
@@ -1133,7 +1133,7 @@ local function readJournal()
       pcall(function()
         local tname = EnumValueToString("gameJournalQuestType", EnumInt(q:GetType()))
         qtype = QUEST_GROUP[tname] or "other"
-        if tname == "CourierSideQuest" then isCap = true end   -- trabalhos de carro do El Capitan
+        if tname == "CourierSideQuest" then isCap = true end   -- El Capitan vehicle contracts.
       end)
       local objective
       local obj = activeObjective(jm, q)
@@ -1174,9 +1174,9 @@ end
 
 local untrackedAt = nil
 local hudKick = nil   -- (desativado) "desliga e religa" do objetivo no HUD
--- O objetivo da missão no HUD (QuestTrackerGameController) continua mostrando a última missão quando
--- nada está rastreado: o jogo base não prevê "nenhuma missão". O mod guarda o controlador (pelos
--- callbacks dele) e esconde o widget enquanto não houver missão rastreada.
+-- The HUD job objective (QuestTrackerGameController) keeps showing the last job when
+-- nothing is tracked: the base game has no "no job" state. The mod stores the controller (through its
+-- callbacks) and hides the widget while no job is tracked.
 local trackerCtrl, trackerHidden = nil, false
 local function applyTrackerVis()
   if not trackerCtrl then return end
@@ -1194,7 +1194,7 @@ local function applyTrackerVis()
     end
   end)
 end
--- deixa o V sem nenhuma missão rastreada (o jogo permite; a próxima atualização de missão pode rastrear de novo)
+-- Leave V with no tracked job (the game allows this; the next job update may track another one).
 local function untrackQuest()
   local jm = Game.GetJournalManager()
   local function stillTracked()
@@ -1202,9 +1202,9 @@ local function untrackQuest()
     pcall(function() t = jm:GetTrackedEntry() end)
     return t ~= nil
   end
-  -- O diário solta a missão, mas o objetivo no canto do HUD não se redesenha sozinho. Depois de soltar,
-  -- o tick desliga e religa o "Objetivo da missão" do HUD (ajuste do jogo, seguro) para ele se atualizar.
-  -- probe.untrack registra o que o jogo aceitou.
+  -- The journal untracks the job, but the HUD objective does not redraw itself. After untracking,
+  -- briefly toggle the HUD job-objective setting (a safe in-game setting) to refresh it.
+  -- probe.untrack records what the game accepted.
   local report = { before = stillTracked() }
   local tries = {
     { "UntrackEntry", function() jm:UntrackEntry() end },
@@ -1217,19 +1217,19 @@ local function untrackQuest()
   end
   probe.untrack = report
   applyTrackerVis()
-  if stillTracked() then warnOnce("parar_rastreio", "o jogo não soltou a missão") return false, "game_refused" end
+  if stillTracked() then warnOnce("parar_rastreio", "the game did not release the job") return false, "game_refused" end
   journal.tracked = nil
   untrackedAt = os.clock()
   return true, "untracked"
 end
 
--- world.json: dados "lentos" (marcadores + diário), gravados só quando mudam
+-- world.json: slower-changing data (markers and journal), written only when changed.
 local lastWorld = ""
 
--- ---------- shards (Codex > Shards): textos que o jogador já leu/achou ----------
--- Gravadas à parte em shards.json (podem ser grandes) e só quando mudam.
+-- ---------- Shards (Codex > Shards): text the player has read or discovered ----------
+-- Stored separately in shards.json (they can be large) and written only when changed.
 local lastShards = ""
-local shardEntries = {}   -- id -> entrada do diário (para marcar como lida)
+local shardEntries = {}   -- ID -> journal entry (for marking it as read).
 local function readShards()
   local jm = Game.GetJournalManager()
   if not jm then return end
@@ -1241,7 +1241,7 @@ local function readShards()
   local out, groups = {}, 0
   local function add(e, cat, depth)
     if depth > 4 then return end
-    -- categorias do Codex: JournalOnscreensStructuredGroup (classe de script) com GetTag/GetEntries
+    -- Codex categories: JournalOnscreensStructuredGroup (script class) with GetTag/GetEntries.
     local structured = false
     pcall(function() structured = e:IsA("gameJournalOnscreensStructuredGroup") end)
     if not structured then pcall(function() structured = e:IsA("JournalOnscreensStructuredGroup") end) end
@@ -1278,7 +1278,7 @@ local function readShards()
   end
   for _, r in ipairs(roots) do add(r, nil, 0) end
   probe.shards = { roots = #roots, groups = groups, count = #out }
-  -- diagnóstico da estrutura (primeiras categorias): classe e filhos com filtros diferentes
+  -- Structure diagnostics (first categories): class and children with different filters.
   if #out == 0 then
     probe.shards.dbg = {}
     local all = JournalRequestStateFilter.new()
@@ -1323,14 +1323,14 @@ local function writeWorld()
                        offers = offers, apartments = apartments, sites = sites, capSpots = capSpotList() })
   if txt == lastWorld then return end
   local f = io.open("world.json", "w")
-  if not f then warnOnce("gravar_mundo", "não consegui abrir world.json") return end
+  if not f then warnOnce("gravar_mundo", "could not open world.json") return end
   f:write(txt)
   f:close()
   lastWorld = txt
 end
 
 -- ---------- waypoint no GPS ----------
--- Pin "CustomPositionVariant" = waypoint do jogador: o jogo passa a traçar a rota até ele.
+-- A "CustomPositionVariant" pin is the player waypoint; the game starts routing to it.
 local function clearWaypoint()
   if not waypoint then return true end
   pcall(function()
@@ -1358,8 +1358,8 @@ local function setWaypoint(arg)
   return true, "waypoint_set"
 end
 
--- ---------- carro: rádio, piloto automático, pintura ----------
--- Assinaturas conferidas no NativeDB (jogo 3.0):
+-- ---------- Car: radio, autodrive and paint ----------
+-- Signatures verified in NativeDB (game version 3.0):
 --   VehicleObject: IsRadioReceiverActive, GetRadioReceiverStationName, GetRadioReceiverTrackName,
 --     GetCurrentRadioIndex, SetRadioReceiverStation(i), NextRadioReceiverStation, ToggleRadioReceiver(b),
 --     IsAutoDriveModeEnabled, ToggleHorn(b)
@@ -1402,18 +1402,18 @@ function readStations()
         pcall(function() name = L(RadioStationDataProvider.GetStationNameByIndex(i, true)) end)
       end
       if name and name:find("^Gameplay%-Devices%-Radio%-RadioStation") then
-        -- última opção: "Gameplay-Devices-Radio-RadioStationDownTempo" -> "Down Tempo"
+        -- Last resort: "Gameplay-Devices-Radio-RadioStationDownTempo" -> "Down Tempo".
         name = name:gsub("^Gameplay%-Devices%-Radio%-RadioStation", ""):gsub("(%l)(%u)", "%1 %2")
       end
       if name and name:find("^radio_station") then
-        -- último recurso: "radio_station_09_downtempo" -> "Downtempo"
+        -- Final fallback: "radio_station_09_downtempo" -> "Downtempo".
         name = name:gsub("^radio_station_%d+_", ""):gsub("_", " "):gsub("(%a)([%w]*)", function(a, b) return a:upper() .. b end)
       end
       if st == nil then st = i end
       list[#list + 1] = { station = st, ui = i, name = name or ("Radio " .. (i + 1)) }
     end
   end)
-  if #list == 0 then warnOnce("radio_lista", "não consegui listar as estações") end
+  if #list == 0 then warnOnce("radio_lista", "could not list radio stations") end
   stations = list
 end
 
@@ -1591,7 +1591,7 @@ function autodrive(mode)
   return true, "ok"
 end
 
--- arg: "r,g,b;r,g,b;hue" (partes vazias = não mudar)
+-- arg: "r,g,b;r,g,b;hue" (empty parts = leave unchanged).
 function carColor(arg, reset)
   local veh = mounted(Game.GetPlayer())
   if not veh then return false, "not_in_vehicle" end
@@ -1636,11 +1636,11 @@ function carHorn()
   return ok, ok and "ok" or "game_refused"
 end
 
--- ---------- mensagens (estilo app do jogo) ----------
--- JournalManager: GetEntry(hash do contato) -> GetFlattenedMessagesAndChoices(contato, out msgs, out escolhas)
+-- ---------- Messages (in-game phone style) ----------
+-- JournalManager: GetEntry(contact hash) -> GetFlattenedMessagesAndChoices(contact, out messages, out choices).
 -- JournalPhoneMessage: GetText, GetSender (NPC/Player), GetImageID; JournalPhoneChoiceEntry: GetText, IsQuestImportant
--- Responder = marcar a escolha como Succeeded (ChangeEntryStateByHash), como a tela de mensagens do jogo.
-local openThread = nil        -- id do contato com a conversa aberta no celular
+-- Reply = mark the choice as Succeeded (ChangeEntryStateByHash), matching the in-game messages screen.
+local openThread = nil        -- Contact ID for the conversation open on the phone.
 local threadCache, threadAt = nil, -99
 local choiceIndex = {}        -- id da escolha -> entry
 
@@ -1686,7 +1686,7 @@ local function buildThread(id)
     pcall(function()
       local m = { id = tostring(jm:GetEntryHash(msg)) }
       m.text = L(msg:GetText())
-      -- respostas já escolhidas vêm na lista como JournalPhoneChoiceEntry: são falas do V
+      -- Previously selected replies appear as JournalPhoneChoiceEntry items; these are V's lines.
       local isChoice = false
       pcall(function() isChoice = msg:IsA("gameJournalPhoneChoiceEntry") end)
       if not isChoice then
@@ -1694,14 +1694,14 @@ local function buildThread(id)
           local snd = EnumValueToString("gameMessageSender", eint(msg:GetSender()))
           m.me = snd == "Player"
         end)
-        if not okS then isChoice = true end  -- sem GetSender: é escolha
+        if not okS then isChoice = true end  -- No GetSender method: this is a choice.
       end
       if isChoice then m.me = true end
       pcall(function()
         local img = msg:GetImageID()
         if img and TDBID.IsValid(img) then
           m.image = true
-          -- imagem anexada (alvo do gig, produto...): UIIcon com atlas + parte; o servidor extrai
+          -- Attached image (gig target, product, etc.): UIIcon with atlas and part; the server extracts it.
           pcall(function()
             local rec = TweakDB:GetRecord(img)
             m.img = uiIcon(rec)
@@ -1712,7 +1712,7 @@ local function buildThread(id)
       pcall(function() m.t = gtime(jm:GetEntryTimestamp(msg)) end)
       pcall(function() m.read = jm:IsEntryVisited(msg) end)
       out.messages[#out.messages + 1] = m
-      -- abrir a conversa marca como lida, como no jogo
+      -- Opening a conversation marks it as read, as in the game.
       if m.read == false then pcall(function() jm:SetEntryVisited(msg, true) end) end
     end)
   end
@@ -1757,7 +1757,7 @@ local function currentThread()
   if clock - threadAt > 1.5 then
     local ok, t = pcall(buildThread, openThread)
     if not ok then t = { contact = openThread, messages = {}, choices = {}, err = tostring(t) } end
-    -- leitura vazia logo depois de uma cheia (jornal mudando no meio): mantém a última conversa boa
+    -- If an empty read follows a populated one while the journal changes, keep the last valid conversation.
     if #t.messages == 0 and threadCache and threadCache.contact == openThread and #threadCache.messages > 0 then
       t.messages = threadCache.messages
       if #t.choices == 0 then t.choices = threadCache.choices end
@@ -1769,7 +1769,7 @@ local function currentThread()
   return threadCache
 end
 
--- ---------- detalhes da missão (botão "...") ----------
+-- ---------- Job details ("..." button) ----------
 local questDetailId, questDetailCache, questDetailAt = nil, nil, -99
 
 local function entryStateName(jm, e)
@@ -1829,7 +1829,7 @@ local function currentQuestDetail()
   return questDetailCache
 end
 
--- ---------- legendas (texto da conversa) ----------
+-- ---------- Subtitles (conversation text) ----------
 -- UIGameData.ShowDialogLine: array<scnDialogLineData{text, speakerName, duration}>
 local subtitle, subtitleSeq, lastLineKey = nil, 0, nil
 local subtitleLog = {}
@@ -1855,7 +1855,7 @@ local function readSubtitle()
     while #subtitleLog > 12 do table.remove(subtitleLog, 1) end
   end)
   if subtitle and clock > subtitle.until_ then subtitle = nil end
-  -- histórico some 20 s depois da última fala
+  -- Conversation history disappears 20 seconds after the last line.
   if #subtitleLog > 0 and clock - subtitleLog[#subtitleLog].at > 20 then subtitleLog = {} end
   if not subtitle and #subtitleLog == 0 then return nil end
   local log = {}
@@ -1863,10 +1863,10 @@ local function readSubtitle()
   return { now = subtitle and { text = subtitle.text, speaker = subtitle.speaker, seq = subtitle.seq } or nil, log = log }
 end
 
--- ---------- loja de veículos (Autofixer) e ofertas ----------
+-- ---------- Vehicle shop (Autofixer) and offers ----------
 -- VehicleOffer_Record: Name, Price (ValueAssignment), PreviewImage (JournalIcon), BrandName,
--- Description, AvailabilityFact (à venda), OwnershipFact (comprado). Comprar = pagar + fact de posse,
--- como a página do jogo; o mod também libera o veículo se o record dele for conhecido.
+-- Description, AvailabilityFact (for sale), OwnershipFact (owned). Buying = payment + ownership fact,
+-- matching the in-game page; the mod also unlocks the vehicle if its record is known.
 
 local function factGet(name)
   if not name or name == "" or name == "None" then return 0 end
@@ -1894,11 +1894,11 @@ local function recId(rec)
   return id
 end
 
--- preço: o registro de preço não expõe Value() no CET; lê o flat ".value" pela TweakDB
+-- Price: CET does not expose Value() on the price record; read the ".value" flat through TweakDB.
 local PRICE_FIELDS = { "overrideValue", "value", "baseValue", "price" }
 local function offerPrice(rec, id)
   local p = nil
-  -- o preço é um EconomicAssignment: o valor fica em OverrideValue / ".overrideValue"
+  -- The price is an EconomicAssignment; its value is stored in OverrideValue / ".overrideValue".
   pcall(function() p = rec:Price():OverrideValue() end)
   if not p or p == 0 then
     pcall(function()
@@ -1947,7 +1947,7 @@ local function readOffers()
       pcall(function() ownF = cnameStr(rec:OwnershipFact()) end)
       o.available = (not availF or availF == "" or availF == "None") or factGet(availF) > 0
       o.owned = factGet(ownF) > 0
-      -- carros liberados pelos contratos do El Capitan (fatos "courier"); o app completa pelo nome
+      -- Cars unlocked by El Capitan contracts ("courier" facts); the app completes the list by name.
       local tag = string.lower(tostring(o.id) .. " " .. tostring(availF) .. " " .. tostring(ownF))
       if tag:find("courier") then o.cap = true end
       if availF and availF ~= "" and availF ~= "None" then o.af = availF end
@@ -1963,7 +1963,7 @@ local function readOffers()
   probe.offersRaw = raw
   probe.offersCount = #list
 
-  -- outras ofertas (apartamentos etc.): só leitura
+  -- Other offers (apartments, etc.) are read-only.
   local apts = {}
   pcall(function()
     for _, rec in ipairs(TweakDB:GetRecords("gamedataPurchaseOffer_Record") or {}) do
@@ -1983,7 +1983,7 @@ local function readOffers()
 end
 
 local function vehicleIdForOffer(o)
-  -- tenta achar o record do veículo a partir do id da oferta (ex.: "...._offer")
+  -- Try to find the vehicle record from the offer ID (e.g. "...._offer").
   local cands = {}
   local id = o and o.id or ""
   cands[#cands + 1] = id:gsub("_offer$", ""):gsub("Offer$", "")
@@ -2014,13 +2014,13 @@ local function buyOffer(id)
   pcall(function() Game.GetQuestsSystem():SetFactStr(o.ownF, 1) end)
   local vid = vehicleIdForOffer({ id = id })
   if vid then pcall(function() Game.GetVehicleSystem():EnablePlayerVehicle(vid, true, false) end) end
-  log(string.format("compra %s por %s (fact %s, veículo %s)", tostring(o.name), tostring(o.price), tostring(o.ownF), tostring(vid)))
+  log(string.format("purchased %s for %s (fact %s, vehicle %s)", tostring(o.name), tostring(o.price), tostring(o.ownF), tostring(vid)))
   readOffers()
   readVehicles()
   return true, "purchased"
 end
 
--- ---------- internet (sites cadastrados no jogo) ----------
+-- ---------- Web (in-game websites) ----------
 local function readSites()
   local jm = Game.GetJournalManager()
   local ctx = JournalRequestContext.new()
@@ -2045,17 +2045,17 @@ local function readSites()
 end
 
 -- ---------- modo imersivo ----------
--- Desliga minimapa e marcadores do HUD do jogo (restaura ao sair) e bloqueia as teclas do
--- jogo para chamar veículo, rádio de bolso e piloto automático. O celular continua funcionando,
+-- Disable the in-game minimap and HUD markers (restore them on exit), and block the keys used to
+-- summon vehicles, use the pocket radio and enable autodrive. The phone interface keeps working,
 -- porque o mod usa outros caminhos (VehicleSystem, eventos e pedidos diretos).
 local SETTINGS_FILE = "neuroport_settings.txt"
 local immersive = false
 local hudPrev = {}
--- elementos do HUD que o modo imersivo esconde (escolhidos um a um no celular)
+-- HUD elements hidden by immersive mode (selected individually on the phone).
 local immHide = {}
 local immHideLoaded = false
--- nomes válidos de ajustes do HUD (Ajustes > Interface > HUD). Lista fixa conferida no jogo;
--- qualquer outro nome derruba o jogo no GetVar. Precisa vir antes de loadSettings.
+-- Valid HUD setting names (Settings > Interface > HUD). Fixed list verified in-game;
+-- any other name can crash the game in GetVar. This must be defined before loadSettings.
 local HUD_VARS = { minimap = true, healthbar = true, stamina_oxygen = true, npc_healthbar = true, ammo_counter = true,
   input_hints = true, action_buttons = true, activity_log = true, crosshairs = true, quest_tracker = true,
   object_markers = true, npc_names = true, wanted_level = true, npc_nameplates = true, crouch_indicator = true,
@@ -2074,7 +2074,7 @@ end
 local function loadSettings()
   local f = io.open(SETTINGS_FILE, "r")
   if not f then return end
-  -- escolhas salvas com a lógica antiga (antes da v0.9.5) são descartadas: tudo começa visível
+  -- Preferences saved by the old logic (before v0.9.5) are discarded; everything starts visible.
   local pending, v2 = {}, false
   for line in f:lines() do
     local k, v = line:match("^([%w_]+)=(%d)")
@@ -2102,7 +2102,7 @@ end
 local function applyHud()
   local want = {}
   if immersive then for name, on in pairs(immHide) do if on then want[name] = true end end end
-  -- devolve o que não deve mais ficar escondido
+  -- Restore elements that should no longer be hidden.
   for name, prev in pairs(hudPrev) do
     if not want[name] then setHud(name, prev); hudPrev[name] = nil end
   end
@@ -2115,7 +2115,7 @@ local function applyHud()
   pcall(function() Game.GetSettingsSystem():ConfirmChanges() end)
 end
 
--- lista dos elementos do HUD que o jogo deixa ligar/desligar (Ajustes > Interface > HUD)
+-- List of HUD elements that the game allows users to show or hide (Settings > Interface > HUD).
 local hudVarsCache = nil
 local function hudVars()
   if hudVarsCache then return hudVarsCache end
@@ -2154,7 +2154,7 @@ local function immToggle(name)
   return true, "ok"
 end
 
--- "esconder tudo": liga/desliga todos os elementos de uma vez ("1" esconde tudo, "0" mostra tudo)
+-- "Hide all": toggle every element at once ("1" hides everything; "0" shows everything).
 local function immAll(arg)
   local hide = tostring(arg) == "1"
   for n in pairs(HUD_VARS) do immHide[n] = hide or nil end
@@ -2200,7 +2200,7 @@ local function registerOverrides()
     if immersive then return false end
     return wrapped(action, consumer)
   end)
-  -- objetivo da missão no HUD: guarda o controlador e esconde quando não há missão rastreada
+  -- HUD job objective: retain the controller and hide it when no job is tracked.
   probe.trackerHook = {}
   local OBS = ObserveAfter or Observe
   for _, fn in ipairs({ "OnInitialize", "OnTrackedEntryChanges", "OnStateChanges", "UpdateTrackerData", "OnTrackedMappinUpdated" }) do
@@ -2214,10 +2214,10 @@ local function registerOverrides()
   probe.overrides = overrides
 end
 
--- ---------- modo foto ----------
+-- ---------- Photo mode ----------
 photoCheckAt = nil
--- O jogo abre o modo foto com um PhotoModeEnableEvent entregue ao sistema de UI.
--- Cada tentativa fica registrada em probe.photo para saber qual funcionou.
+-- The game opens photo mode with a PhotoModeEnableEvent sent to the UI system.
+-- Each attempt is recorded in probe.photo to identify the working method.
 local function photoMode()
   probe.photo = {}
   local function mk()
@@ -2226,8 +2226,8 @@ local function photoMode()
     pcall(function() e:SetEnable(true) end)
     return e
   end
-  -- o PhotoModeEnableEvent não existe no RTTI do jogo: quem abre o modo foto é o servidor,
-  -- apertando a tecla N na janela do jogo. Aqui só confirmamos que dá para abrir.
+  -- PhotoModeEnableEvent is not exposed in the game RTTI; the server opens photo mode
+  -- by pressing N in the game window. Here we only confirm that it can be opened.
   local tries = {}
   local any = true
   for _, tr in ipairs(tries) do
@@ -2236,7 +2236,7 @@ local function photoMode()
     if ok then any = true; break end
   end
   pcall(function() probe.photo.canEnable = Game.GetPhotoModeSystem():CanPhotoModeBeEnabled() end)
-  -- tipos e métodos reais (para descobrir o caminho certo se o evento não abrir)
+  -- Actual types and methods (to find the correct path if the event does not open).
   pcall(function() probe.photo.eventType = DumpType("PhotoModeEnableEvent", true) end)
   pcall(function() probe.photo.systemType = DumpType("gamePhotoModeSystem", true) end)
   photoCheckAt = clock + 2
@@ -2250,7 +2250,7 @@ local function writeProbe()
 end
 
 ---------------------------------------------------------------------------
--- ponte de arquivos
+-- File bridge.
 ---------------------------------------------------------------------------
 local function pushAck(id, ok, msg, action)
   acks[#acks + 1] = { id = tostring(id), ok = ok, msg = msg, action = action }
@@ -2266,7 +2266,7 @@ local function readInbox()
   for line in txt:gmatch("[^\n]+") do
     line = line:gsub("\r$", "")
     local id, action, arg = line:match("^(%d+)\t([^\t]*)\t(.*)$")
-    -- idStr volta intacto no ack (evita notação científica do LuaJIT)
+    -- idStr is returned unchanged in the acknowledgement (avoids LuaJIT scientific notation).
     if id then cmds[#cmds + 1] = { id = tonumber(id), idStr = id, action = action, arg = arg } end
   end
   return cmds
@@ -2331,7 +2331,7 @@ local function processInbox()
           pushAck(c.idStr, okRes ~= false, msg, c.action)
         end
       end
-      nextWrite = 0 -- responde rápido
+      nextWrite = 0 -- Respond immediately.
     end
   end
 end
@@ -2363,7 +2363,7 @@ local function writeState()
   if clock - (immStateAt or -99) > 5 then immStateAt = clock; immStateCache = immState() end
   s.immHud = immStateCache
   local f = io.open(STATE, "w")
-  if not f then warnOnce("gravar_estado", "não consegui abrir state.json") return end
+  if not f then warnOnce("gravar_estado", "could not open state.json") return end
   f:write(encode(s))
   f:close()
   stats.writes = stats.writes + 1
@@ -2375,15 +2375,15 @@ end
 registerForEvent("onInit", function()
   loadSettings()
   registerOverrides()
-  -- Ignora comandos que sobraram de uma sessão anterior.
+  -- Ignore commands left over from a previous session.
   for _, c in ipairs(readInbox()) do
     if c.id > lastCmdId then lastCmdId = c.id end
   end
-  log("v" .. VERSION .. " carregado")
+  log("v" .. VERSION .. " loaded")
 end)
 
--- depois de parar de rastrear: desliga o objetivo do HUD e religa ~0,4 s depois, para ele se redesenhar
--- sem missão. Só mexe se ele estiver visível (o modo imersivo pode estar escondendo).
+-- After untracking: disable the HUD objective and re-enable it about 0.4 seconds later to redraw it
+-- without a job. Only do this if it is visible (immersive mode may be hiding it).
 local hudKickAt = 0
 local trackerVisAt = 0
 local function hudKickStep()
@@ -2419,7 +2419,7 @@ registerForEvent("onUpdate", function(dt)
   end
   local player = getPlayer()
   if player and not wasInGame then
-    -- save novo carregado: ids de pins da sessão anterior não valem mais
+    -- A newly loaded save invalidates pin IDs from the previous session.
     waypoint, nextLists, nextPois = nil, 0, 0
   end
   wasInGame = player ~= nil
@@ -2473,18 +2473,18 @@ registerForEvent("onOverlayClose", function() overlayOpen = false end)
 registerForEvent("onDraw", function()
   if not overlayOpen then return end
   if ImGui.Begin("Neuroport") then
-    ImGui.Text("Versão " .. VERSION .. (getPlayer() and "  |  em jogo" or "  |  fora do jogo"))
-    ImGui.Text(string.format("Veículos: %d   Contatos: %d   Marcadores: %d (%s)", #cache.vehicles, #cache.contacts, #pois, poisStatus))
-    ImGui.Text("Idioma do jogo: " .. tostring(gameLang) .. "   Missões: " .. #journal.quests)
-    ImGui.Text(string.format("Comandos: %d   Gravações: %d", stats.cmds, stats.writes))
-    if ImGui.Button("Recarregar listas") then nextLists = 0 end
+    ImGui.Text("Version " .. VERSION .. (getPlayer() and "  |  in game" or "  |  out of game"))
+    ImGui.Text(string.format("Vehicles: %d   Contacts: %d   Markers: %d (%s)", #cache.vehicles, #cache.contacts, #pois, poisStatus))
+    ImGui.Text("Game language: " .. tostring(gameLang) .. "   Jobs: " .. #journal.quests)
+    ImGui.Text(string.format("Commands: %d   Saves: %d", stats.cmds, stats.writes))
+    if ImGui.Button("Reload lists") then nextLists = 0 end
     ImGui.Separator()
     local any = false
     for k, msg in pairs(errors) do
       any = true
       ImGui.TextWrapped(k .. ": " .. msg)
     end
-    if not any then ImGui.Text("Sem erros.") end
+    if not any then ImGui.Text("No errors.") end
   end
   ImGui.End()
 end)

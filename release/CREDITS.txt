@@ -1,0 +1,74 @@
+NEUROPORT - CREDITS AND LICENSES
+================================
+
+Neuroport is a fan-made mod. It is not affiliated with or endorsed by
+CD PROJEKT RED. Thanks to everyone below; the project depends on their work.
+
+REQUIRED MODS (installed separately)
+------------------------------------
+  Cyber Engine Tweaks (CET)   yamashi and the CET contributors          MIT
+      https://github.com/maximegmd/CyberEngineTweaks
+      Runs Neuroport's Lua code inside the game.
+  RED4ext                     WopsS and contributors                    MIT
+      https://github.com/wopss/RED4ext
+  Codeware                    psiberx                                   MIT
+      https://github.com/psiberx/cp2077-codeware
+      Gives the mod access to the game's map markers.
+
+RUNTIMES
+--------
+  Node.js                     OpenJS Foundation and contributors        MIT
+      https://nodejs.org            Runs the local Neuroport server.
+  Python                      Python Software Foundation                PSF License
+      https://www.python.org        Used by the Linux installer and extractors.
+  Pillow                      Jeffrey A. Clark and contributors         MIT-CMU
+      https://python-pillow.org     Decodes BC7 textures.
+  oozextract 0.5.4            oozextract contributors                   MIT
+      https://github.com/lvlvllvlvllvlvl/oozextract
+      Native Linux Oodle/Kraken decompression bridge.
+
+LIBRARIES USED BY THE WEB APP
+-----------------------------
+  three.js r170               three.js authors                          MIT
+      https://threejs.org           Map renderer, including GLTFLoader and
+                                    Line2 / LineMaterial add-ons.
+  qrcode-generator 1.4.4      Kazuhiko Arase                            MIT
+      https://github.com/kazuhikoarase/qrcode-generator
+                                    QR-code generation.
+
+FONTS
+-----
+  Rajdhani                    Indian Type Foundry                       SIL OFL 1.1
+  Share Tech Mono             Carrois Type Design (Ralph du Carrois)    SIL OFL 1.1
+
+MAP DATA
+--------
+  Open2077 / op77_map3d       Open2077 contributors                     MIT
+      Map data format and exporter. The exported game data itself is not
+      covered by the MIT license. See LICENSES/ for the full license and notice.
+
+REFERENCES
+----------
+  WolvenKit and the Cyberpunk 2077 modding community (wiki.redmodding.org)
+      Document the .archive and CR2W formats used by the game-data extractors.
+  El Capitan vehicle-contract areas were cross-referenced with guides by
+      GNL Magazine and GamingBolt.
+
+GAME CONTENT
+------------
+  Cyberpunk 2077 (c) CD PROJEKT S.A. All rights reserved. CD PROJEKT,
+  Cyberpunk and Cyberpunk 2077 are registered trademarks of CD PROJEKT S.A.
+  Map geometry, map icons, contact portraits, vehicle images, message images,
+  the ringtone and Personal Link artwork belong to CD PROJEKT S.A. These assets
+  are extracted locally from the user's own game installation.
+
+TOOLS USED DURING DEVELOPMENT
+-----------------------------
+  FFmpeg (LGPL/GPL)           Video captures and preview GIFs.
+  Microsoft Edge (headless)   Page banners.
+  luaparse (MIT)              Lua syntax checks.
+  Claude Code (Anthropic)     AI coding assistance during upstream development.
+  OpenAI ChatGPT              AI assistance for the Linux adaptation, installer,
+                              translations, documentation and packaging checks.
+
+Neuroport is distributed under the MIT License for its own code. See LICENSE.

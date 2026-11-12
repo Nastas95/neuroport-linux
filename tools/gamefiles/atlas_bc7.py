@@ -1,6 +1,6 @@
-"""Leitura de atlas de UI do jogo em BC7 (TCM_QualityColor), usando o decodificador BCn do Pillow.
+"""Read the game UI atlas in BC7 (TCM_QualityColor) using Pillow BCn decoding.
 
-Uso: python -I atlas_bc7.py <saída.png>   gera uma folha de contato com todas as partes do atlas de mappins 2.x
+Usage: python -I atlas_bc7.py <output.png>   creates a contact sheet of all parts in the 2.x mappin atlas.
 """
 import os
 import sys
@@ -13,7 +13,7 @@ _cache = {}
 
 
 def texture_image(path):
-    """Imagem RGBA inteira (já desvirada) de uma textura BC7."""
+    """Full RGBA image (already vertically flipped) from a BC7 texture."""
     from PIL import Image
     if path in _cache:
         return _cache[path]
@@ -35,7 +35,7 @@ def parts(h=NEW):
 
 
 def part_image(name, h=NEW):
-    """Recorte de uma parte (PIL.Image RGBA)."""
+    """Crop one region (PIL.Image RGBA)."""
     tex, ps = parts(h)
     uv = ps[name]
     img = texture_image(tex)

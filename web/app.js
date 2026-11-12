@@ -1,4 +1,4 @@
-// Neuroport — interface do celular.
+// Neuroport — phone interface.
 'use strict';
 
 const $ = (id) => document.getElementById(id);
@@ -8,7 +8,7 @@ const CATS = ['ncpd', 'gig', 'tarot', 'side'];
 
 let key = null;
 let es = null;
-let state = null;        // último snapshot {online, mock, game}
+let state = null;        // Latest snapshot. {online, mock, game}
 let tab = 'contacts';
 let vehFilter = 'car';
 let selectedVeh = null;
@@ -17,11 +17,11 @@ let lastContactsKey = '';
 let lastVehiclesKey = '';
 let lastGigsKey = '';
 let summonTimer = null;
-let mapPick = null;      // {poi} | {point} aguardando confirmação
+let mapPick = null;      // {poi} | {point} awaiting confirmation.
 
 // ---------- utilidades ----------
 function store(k, v) {
-  try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* sem storage */ }
+  try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* Storage is unavailable */ }
 }
 function load(k) { try { return localStorage.getItem(k); } catch { return null; } }
 function esc(s) {
@@ -32,8 +32,8 @@ function initials(name) {
   if (!parts.length) return '?';
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 }
-// avatar do contato (imagem do jogo) com as iniciais por baixo, caso não carregue
-// quebra de linha que chega como barra + n (cópias antigas / textos do jogo)
+// Contact avatar (game image), with initials as a fallback if it fails to load.
+// Handle line breaks encoded as backslash-n (legacy copies and in-game text).
 function fixNl(x) { return String(x == null ? '' : x).replace(/\\r?\\n/g, '\n'); }
 function oneLine(x) { return fixNl(x).replace(/\s+/g, ' ').trim(); }
 function avatarHtml(c) {
@@ -56,7 +56,7 @@ function toast(msg, ok = true, label) {
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 260); }, 2600);
 }
 
-// ---------- pareamento ----------
+// ---------- Pairing ----------
 async function checkKey(k) {
   try { return (await fetch(`/api/check?k=${encodeURIComponent(k)}`)).ok; } catch { return false; }
 }
@@ -69,7 +69,7 @@ async function boot() {
     url.searchParams.delete('k');
     history.replaceState(null, '', url.pathname + url.search);
   }
-  key = load(KEY_STORE) || load('holophone.key');   // migração do nome antigo
+  key = load(KEY_STORE) || load('holophone.key');   // Migrate from the old key name.
   if (key && (await checkKey(key))) return start();
   showPair();
 }
@@ -89,7 +89,7 @@ $('pair-form').addEventListener('submit', async (e) => {
   else { $('pair-err').hidden = false; buzz([30, 40, 30]); }
 });
 
-// ---------- conexão ----------
+// ---------- Connection ----------
 function start() {
   $('pair').hidden = true;
   $('app').hidden = false;
@@ -170,13 +170,18 @@ function setLink(mode) {
   el.classList.toggle('is-on', mode === 'on');
   el.classList.toggle('is-off', mode !== 'on');
   el.dataset.mode = mode;
-  $('link-label').textContent = t(mode === 'on' ? 'linkOn' : mode === 'idle' ? 'linkIdle' : 'linkWait');
+  const label = t(mode === 'on' ? 'linkOn' : mode === 'idle' ? 'linkIdle' : 'linkWait');
+  $('link-label').textContent = label;
+  const desktopLabel = $('desktop-link-label');
+  const desktopDot = $('desktop-link-dot');
+  if (desktopLabel) desktopLabel.textContent = label;
+  if (desktopDot) desktopDot.classList.toggle('is-on', mode === 'on');
 }
 
 function render() {
   if (!state) return;
   const g = game();
-  // idioma do jogo manda; ao trocar, força redesenho das listas
+  // The game language takes priority; redraw the lists when it changes.
   if (setLang(langFromGame(g.lang))) {
     lastContactsKey = lastVehiclesKey = lastGigsKey = lastJournalKey = '';
     if (!$('filters-sheet').hidden) renderFilters();
@@ -214,7 +219,7 @@ function renderHud(p, district) {
   $('money').textContent = p.money != null ? fmtMoney(p.money) : '----';
 }
 
-// ---------- contatos ----------
+// ---------- Contacts ----------
 function renderContacts(list) {
   const k = JSON.stringify(list);
   if (k === lastContactsKey) return;
@@ -272,7 +277,7 @@ function fillSheet(c) {
 
 function closeSheet() { $('sheet').hidden = true; sheetContact = null; }
 $('sheet-close').addEventListener('click', closeSheet);
-// conversa completa (inclusive as antigas) a partir do contato
+// Load the full conversation, including older messages, from the contact.
 $('sheet-chat').addEventListener('click', () => {
   const id = sheetContact;
   if (!id) return;
@@ -392,8 +397,8 @@ function renderCall(call, contacts) {
   openHolo(name, st, call.contact || (localCall && localCall.contact));
 }
 
-// ---------- veículos ----------
-// carros do Autofixer que os contratos do El Capitan liberam (o mod também marca os fatos "courier")
+// ---------- Vehicles ----------
+// Autofixer cars unlocked by El Capitan contracts (the mod also marks "courier" facts).
 const CAP_MODELS = ['sidewinder', 'chiaroscuro', 'wingate', 'samum', 'barghest', 'warlock', 'locust', 'herman', 'trailbruiser', 'terrier', 'weiler'];
 const normName = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 function capOffers() {
@@ -403,7 +408,7 @@ function capOffers() {
     .map((o) => ({ ...o, have: !!o.owned || own.has(normName(o.name)) }))
     .sort((a, b) => (b.have - a.have) || (b.available - a.available) || String(a.name).localeCompare(String(b.name)));
 }
-// oferta do Autofixer com o mesmo nome (descrição e preço para os carros da garagem)
+// Autofixer offer with the same name (description and price for garage vehicles).
 function offerFor(v) {
   const n = normName(v.name);
   return (game().offers || []).find((o) => normName(o.name) === n) || null;
@@ -486,7 +491,7 @@ $('veh-filter').addEventListener('click', (e) => {
   renderVehicles(game().vehicles || [], game().activeVehicle);
 });
 
-// tocar num veículo: seleciona e abre a ficha (como no jogo: potência, massa, tração, ano...)
+// Selecting a vehicle opens its details (power, mass, drivetrain, year, etc.).
 $('vehicles').addEventListener('click', (e) => {
   const row = e.target.closest('.row');
   if (!row) return;
@@ -519,7 +524,7 @@ function openVehSheet(v, offer) {
     if (c) chips.push(capChip(capState(c)));
   }
   $('vs-chips').innerHTML = chips.join('');
-  const num = (n, u) => (typeof n === 'number' ? n.toLocaleString(LANG === 'pt' ? 'pt-BR' : 'en-US') + (u ? ' ' + u : '') : n);
+  const num = (n, u) => (typeof n === 'number' ? n.toLocaleString('en-US') + (u ? ' ' + u : '') : n);
   const facts = [];
   const add = (key, val) => { if (val != null && val !== '') facts.push(`<div><dt>${t(key)}</dt><dd>${esc(String(val))}</dd></div>`); };
   add('vMaker', (v && v.maker) || (o && (o.brandName || o.brand)));
@@ -576,7 +581,7 @@ function distTo(p) {
   if (!me || me.x == null) return p.d;
   return Math.hypot(p.x - me.x, p.y - me.y);
 }
-// rumo relativo (graus, horário) do jogador até o ponto
+// Player-to-point relative bearing (degrees, clockwise).
 function relBearing(p) {
   const me = playerPos();
   if (!me || me.x == null) return 0;
@@ -588,7 +593,7 @@ function allPois(strict) {
   for (const p of game().pois || []) { const e = enrichPoi(p); if (e && (typeof poiActive !== 'function' || poiActive(e, strict))) out.push(e); }
   return out;
 }
-// Quick Gig: só os tipos que entram nas 4 categorias
+// Quick Gig: only types included in the four categories.
 function poisSorted() {
   return allPois(true).filter((p) => p.cat).map((p) => ({ ...p, dist: distTo(p) })).sort((a, b) => a.dist - b.dist);
 }
@@ -599,7 +604,7 @@ function poiLabel(p) {
 function wpLabel(wp) {
   if (wp && wp.label) return wp.label;
   if (!wp || !wp.cat) return t('customPoint');
-  // destino de missão: nome da missão rastreada no diário
+  // Job destination: the name of the job tracked in the journal.
   if (wp.cat === 'quest' || wp.cat === 'quest_obj') {
     const j = game().journal || {};
     const q = (j.quests || []).find((x) => x.id === j.tracked);
@@ -629,7 +634,7 @@ function renderGigs() {
   const list = poisSorted();
   const wp = g.waypoint;
 
-  // barra de GPS ativo (atualiza sempre: a distância muda)
+  // Active GPS bar (updated continuously as the distance changes).
   $('gps-bar').hidden = !wp;
   if (wp) {
     $('gps-label').innerHTML = `<span class="cat-dot" style="--c:${wpColor(wp)}"></span>${esc(wpLabel(wp))} · ${fmtDist(distTo(wp))}`;
@@ -643,7 +648,7 @@ function renderGigs() {
   $('nearest-dot').style.setProperty('--c', nearest ? nearest.color : 'transparent');
   $('gigs-meta').textContent = g.district || '';
 
-  // cartões por categoria
+  // Cards grouped by category.
   $('cat-grid').innerHTML = CATS.map((c) => {
     const items = list.filter((p) => p.cat === c);
     const n = items[0];
@@ -658,7 +663,7 @@ function renderGigs() {
       </button>`;
   }).join('');
 
-  // lista dos próximos
+  // List of upcoming items.
   const top = list.slice(0, 12);
   const empty = !top.length;
   $('gigs-empty').hidden = !empty;
@@ -695,34 +700,34 @@ $('poi-list').addEventListener('click', (e) => {
 });
 $('gps-clear').addEventListener('click', () => { buzz(10); cmd('clearwp'); });
 
-// ---------- mapa ----------
-// El Capitan: "mostrar possível localização" — o mapa mostra só os contratos marcados agora e os
-// pontos onde já apareceram (o mod guarda cada um), até tocar em SAIR na faixa do mapa.
+// ---------- Map ----------
+// El Capitan: "show possible locations" — the map displays current contracts and locations where
+// contracts have appeared before (saved by the mod), until EXIT is tapped on the map banner.
 let capHunt = false;
-// Pontos conhecidos dos contratos (guia da GNL Magazine), presos ao ponto de viagem rápida mais próximo.
-// O app acha o ponto pelo nome que o jogo dá (as palavras-chave são nomes próprios, valem em qualquer idioma).
+// Known contract locations (GNL Magazine guide), anchored to the nearest fast-travel point.
+// The app finds locations by their in-game names; the keywords are proper names and work in any language.
 const CAP_GUIDE = [
-  { k: /kress/i, en: 'Dogtown: near the Kress St. fast travel', pt: 'Dogtown: perto da viagem rápida Kress St.' },
-  { k: /luxor/i, en: 'Dogtown: near Luxor High Wellness Spa', pt: 'Dogtown: perto do Luxor High Wellness Spa' },
-  { k: /batty/i, en: "Pacifica, Coastview: near Batty's Hotel", pt: "Pacifica, Coastview: perto do Batty's Hotel" },
-  { k: /college/i, en: 'Heywood, Vista Del Rey: near College St.', pt: 'Heywood, Vista Del Rey: perto da College St.' },
-  { k: /martin/i, en: 'Watson, Northside: at Martin St.', pt: 'Watson, Northside: na Martin St.' },
-  { k: /kennedy/i, en: 'Watson, Kabuki: southeast of Kennedy North', pt: 'Watson, Kabuki: a sudeste de Kennedy North' },
-  { k: /\bh8\b/i, en: 'Japantown: across from Megabuilding H8', pt: 'Japantown: em frente ao Megaprédio H8' },
-  { k: /almu[nñ]ecar|jerez/i, en: 'Rancho Coronado: near Almunecar & Jerez', pt: 'Rancho Coronado: perto de Almunecar & Jerez' },
-  { k: /kendal/i, en: 'Rancho Coronado: near Kendal Park', pt: 'Rancho Coronado: perto do Kendal Park' },
-  { k: /red dirt/i, en: 'Arroyo: down the street from the Red Dirt Bar', pt: 'Arroyo: descendo a rua do Red Dirt Bar' },
-  { k: /mission waterfront|waterfront/i, en: 'Arroyo: near Mission Waterfront', pt: 'Arroyo: perto de Mission Waterfront' },
-  { k: /halsey/i, en: 'Corpo Plaza: near Halsey & MLK', pt: 'Corpo Plaza: perto de Halsey & MLK' },
-  { k: /^fuel station$|^posto/i, en: 'Badlands: near the Abandoned Fuel Station', pt: 'Badlands: perto do Posto Abandonado' },
-  { k: /sunshine/i, en: 'Badlands: across from the Sunshine Motel', pt: 'Badlands: em frente ao Sunshine Motel' },
+  { k: /kress/i, en: 'Dogtown: near the Kress St. fast travel' },
+  { k: /luxor/i, en: 'Dogtown: near Luxor High Wellness Spa' },
+  { k: /batty/i, en: "Pacifica, Coastview: near Batty's Hotel" },
+  { k: /college/i, en: 'Heywood, Vista Del Rey: near College St.' },
+  { k: /martin/i, en: 'Watson, Northside: at Martin St.' },
+  { k: /kennedy/i, en: 'Watson, Kabuki: southeast of Kennedy North' },
+  { k: /\bh8\b/i, en: 'Japantown: across from Megabuilding H8' },
+  { k: /almu[nñ]ecar|jerez/i, en: 'Rancho Coronado: near Almunecar & Jerez' },
+  { k: /kendal/i, en: 'Rancho Coronado: near Kendal Park' },
+  { k: /red dirt/i, en: 'Arroyo: down the street from the Red Dirt Bar' },
+  { k: /mission waterfront|waterfront/i, en: 'Arroyo: near Mission Waterfront' },
+  { k: /halsey/i, en: 'Corpo Plaza: near Halsey & MLK' },
+  { k: /^fuel station$|^posto/i, en: 'Badlands: near the Abandoned Fuel Station' },
+  { k: /sunshine/i, en: 'Badlands: across from the Sunshine Motel' },
 ];
 function capGuidePois() {
   const fts = (game().pois || []).filter((p) => p.v === 'FastTravel' && p.n);
   const out = [];
   for (const gd of CAP_GUIDE) {
     const ft = fts.find((p) => gd.k.test(p.n));
-    if (ft) out.push({ ...enrichPoi({ v: 'CourierSandboxActivity', x: ft.x, y: ft.y, z: ft.z, ph: 'd' }), color: '#f7a23e', guide: gd[LANG] || gd.en, ftName: ft.n });
+    if (ft) out.push({ ...enrichPoi({ v: 'CourierSandboxActivity', x: ft.x, y: ft.y, z: ft.z, ph: 'd' }), color: '#f7a23e', guide: gd.en, ftName: ft.n });
   }
   return out;
 }
@@ -742,7 +747,7 @@ function startCapHunt() {
   const me = playerPos() || {};
   const live = list.filter((p) => p.live);
   const pick = (live.length ? live : list).slice().sort((a, b) => Math.hypot(a.x - (me.x || 0), a.y - (me.y || 0)) - Math.hypot(b.x - (me.x || 0), b.y - (me.y || 0)))[0];
-  // sem nenhum ponto ainda: Dogtown, onde a maioria dos contratos aparece
+  // No known locations yet: Dogtown, where most contracts appear.
   const gate = (game().pois || []).find((p) => p.v === 'DogtownGate');
   const c = pick || gate || { x: -2040, y: -2540, z: 0 };
   setTimeout(() => { if (window.Map3D && Map3D.ready) Map3D.focusOn(c.x, c.y, c.z, pick ? 1400 : 2600); }, 250);
@@ -765,7 +770,7 @@ function renderCapBanner() {
 function mapPois() {
   if (capHunt) return capHuntPois();
   const list = allPois().filter(filterShows);
-  // radar 2D (reserva do 3D): aplica o zoom do filtro dinâmico aqui
+  // 2D radar fallback: apply the dynamic filter zoom here.
   if (filterMode === 'dynamic' && !(window.Map3D && Map3D.ready)) {
     const r = HoloMap.radius();
     const lim = r <= 700 ? 2 : r <= 1800 ? 1 : 0;
@@ -817,7 +822,7 @@ function fillPop() {
   $('pop-height').textContent = p.z != null && me.z != null ? fmtHeight(p.z - me.z) : '—';
   $('pop-coords').textContent = `${Math.round(p.x)}, ${Math.round(p.y)}${p.z != null ? ', ' + Math.round(p.z) : ''}`;
   $('pop-arrow').style.transform = `rotate(${relBearing(p).toFixed(0)}deg)`;
-  // marcador ligado a uma missão: rastrear direto daqui
+  // Mission-linked marker: start tracking directly from here.
   const q = res.poi && res.poi.q;
   const tracked = q && (game().journal || {}).tracked === q;
   $('pop-track').hidden = !q;
@@ -850,7 +855,7 @@ $('zoom-in').addEventListener('click', () => { HoloMap.zoom(-1); if (window.map3
 $('zoom-out').addEventListener('click', () => { HoloMap.zoom(1); if (window.map3dZoom) map3dZoom(1.5); buzz(5); renderMap(); });
 $('map-mode').addEventListener('click', () => { HoloMap.toggleMode(); if (window.map3dMode) map3dMode(HoloMap.isHeadingUp()); buzz(5); renderMap(); });
 
-// ---------- filtros do mapa ----------
+// ---------- Map filters ----------
 function renderFilters() {
   const counts = {};
   for (const p of allPois()) counts[p.f] = (counts[p.f] || 0) + 1;
@@ -925,7 +930,7 @@ $('filters-none').addEventListener('click', () => {
   saveFilters(); renderFilters(); renderMap();
 });
 
-// ---------- diário ----------
+// ---------- Journal ----------
 const JOURNAL_GROUPS = ['main', 'side', 'gig', 'other'];
 let lastJournalKey = '';
 let questSheet = null;

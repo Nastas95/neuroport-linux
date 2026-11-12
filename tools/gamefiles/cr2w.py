@@ -1,5 +1,5 @@
-"""Leitor mínimo de recursos CR2W (REDengine 4): tabelas de nomes/imports/exports,
-propriedades serializadas por RTTI e buffers (segmentos extras do archive)."""
+"""Minimal reader for CR2W resources (REDengine 4): name/import/export tables,
+RTTI-serialized properties and buffers (additional archive segments)."""
 import struct
 
 PRIM = {
@@ -12,7 +12,7 @@ PRIM = {
 class CR2W:
     def __init__(self, data):
         self.d = d = data
-        assert d[:4] == b'CR2W', 'não é CR2W'
+        assert d[:4] == b'CR2W', 'not a CR2W file'
         tables = [struct.unpack_from('<III', d, 40 + i * 12) for i in range(10)]
         s_off, s_size, _ = tables[0]
         self.strings = d[s_off:s_off + s_size]

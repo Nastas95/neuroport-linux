@@ -1,6 +1,6 @@
-"""Extrai os ícones de marcador do mapa do jogo (atlas de mappins do 2.x, BC7) para web/mapicons/<Variante>.png.
+"""Extract in-game map marker icons (2.x mappin atlas, BC7) to web/mapicons/<Variant>.png.
 
-Uso: python -I extract_mapicons.py
+Usage: python -I extract_mapicons.py
 """
 import os
 import sys
@@ -8,12 +8,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from atlas_bc7 import part_image  # noqa: E402
 
-# variante (sem "Variant"/"Zzz##_") -> parte do atlas base\gameplay\gui\common\icons\mappin_icons
-GIG = 'gigs'   # no 2.x todos os gigs usam o mesmo ícone ("!" na caixa)
+# Variant name (without "Variant"/"Zzz##_") -> part in base\gameplay\gui\common\icons\mappin_icons
+GIG = 'gigs'   # In game version 2.x, all gigs use the same boxed "!" icon.
 MAP = {
     'DefaultQuest': 'quest', 'DynamicEvent': 'dynamic_event', 'Conversation': 'talk',
     'PhoneCall': 'call', 'BountyHunt': GIG, 'Retrieving': GIG, 'Thievery': GIG, 'Sabotage': GIG,
-    'ClientInDistress': GIG, 'SOSsignal': GIG, 'Courier': GIG, 'CourierSandboxActivity': 'courier',  # volante (contratos do El Capitan)
+    'ClientInDistress': GIG, 'SOSsignal': GIG, 'Courier': GIG, 'CourierSandboxActivity': 'courier',  # steering wheel (El Capitan contracts)
     'Convoy': GIG, 'QuestGiver': 'quest_giver', 'ExclamationMark': 'quest_excmark',
     'Fixer': 'fixer', 'NCPDGig': 'map_bounty', 'GangWatch': 'gang_watch',
     'Outpost': 'outpost', 'HiddenStash': 'hidden_stash', 'HuntForPsycho': 'hunt_for_psycho',
@@ -43,13 +43,13 @@ def main():
         try:
             im = part_image(part)
         except KeyError:
-            print('faltando', variant, part)
+            print('missing', variant, part)
             continue
         im = im.crop(im.getbbox() or (0, 0, im.width, im.height))
         im.thumbnail((128, 128))
         im.save(os.path.join(out_dir, variant + '.png'))
         ok += 1
-    print(f'{ok}/{len(MAP)} ícones em {os.path.normpath(out_dir)}')
+    print(f'{ok}/{len(MAP)} icons in {os.path.normpath(out_dir)}')
 
 
 if __name__ == '__main__':

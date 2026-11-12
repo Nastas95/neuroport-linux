@@ -1,5 +1,5 @@
-# Aperta uma tecla na janela do Cyberpunk 2077 (por scancode, que é o que o jogo lê).
-# Uso: powershell -NoProfile -ExecutionPolicy Bypass -File presskey.ps1 -Scan 0x31   (0x31 = N, modo foto)
+# Sends a key to the Cyberpunk 2077 window using the scan code read by the game.
+# Usage: powershell -NoProfile -ExecutionPolicy Bypass -File presskey.ps1 -Scan 0x31 (0x31 = N, photo mode).
 param([int]$Scan = 0x31, [int]$HoldMs = 70)
 
 Add-Type -TypeDefinition @'

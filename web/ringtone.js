@@ -1,8 +1,8 @@
-// Neuroport — toque de chamada recebida.
-// Toca o toque do próprio jogo (ringtone/ringtone.ogg, extraído da instalação)
-// pela Web Audio API. Não usa <audio>: no Android um elemento de áudio vira uma
-// "sessão de mídia" e o sistema (fone Bluetooth, notificação) pode dar play nele
-// sozinho. Com Web Audio, o toque só sai quando o app manda.
+// Neuroport — incoming call ringtone.
+// Plays the game's own ringtone (ringtone/ringtone.ogg, extracted from the installation)
+// through the Web Audio API. It does not use <audio>: on Android, an audio element becomes
+// Media session integration can let the operating system (Bluetooth headset or notification) play it.
+// audible on its own. With Web Audio, the ringtone plays only when requested by the app.
 'use strict';
 
 const Ringtone = (() => {
@@ -28,7 +28,7 @@ const Ringtone = (() => {
     return loading;
   }
 
-  // navegadores só liberam áudio depois de um toque na tela
+  // Browsers allow audio playback only after a user gesture.
   function unlock() {
     const c = audioCtx();
     if (!c) return;
@@ -80,7 +80,7 @@ const Ringtone = (() => {
     vibeTimer = setInterval(vibe, 2000);
   }
 
-  // sempre limpa tudo, mesmo que achemos que não estava tocando
+  // Always clean up, even if playback appears to have already stopped.
   function stop() {
     ringing = false;
     if (src) { try { src.stop(); } catch { /* ok */ } try { src.disconnect(); } catch { /* ok */ } src = null; }

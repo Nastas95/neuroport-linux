@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -26,7 +26,7 @@
   <div class="fx-scan" aria-hidden="true"></div>
   <div class="fx-vignette" aria-hidden="true"></div>
 
-  <!-- ============ PAREAMENTO ============ -->
+  <!-- ============ PAIRING ============ -->
   <section id="pair" class="screen" hidden>
     <div class="pair-box frame">
       <div class="tag" data-i18n="pairTag"></div>
@@ -47,20 +47,37 @@
       <span class="sb-time" id="sb-time">--:--</span>
       <span class="sb-notch"><i></i>NEUROPORT</span>
       <span class="sb-right">
-        <button class="sb-fs" id="sb-fs" hidden aria-label="Tela cheia"><svg class="sb-ico" viewBox="0 0 24 24"><use href="#i-fs"/></svg></button>
+        <button class="sb-fs" id="sb-fs" hidden aria-label="Full screen"><svg class="sb-ico" viewBox="0 0 24 24"><use href="#i-fs"/></svg></button>
         <svg class="sb-ico" id="sb-imm" hidden viewBox="0 0 24 24"><use href="#i-eye"/></svg>
         <svg class="sb-ico" id="sb-car" hidden viewBox="0 0 24 24"><use href="#i-car"/></svg>
         <span class="sb-link" id="sb-link"><i></i><i></i><i></i><i></i></span>
         <span class="sb-bat" id="sb-bat"><span class="sb-bat-body"><i id="sb-bat-fill"></i></span><b id="sb-bat-val"></b></span>
       </span>
     </div>
+    <!-- ===== Desktop navigation (shown on desktop only) ===== -->
+    <aside class="desktop-sidebar" id="desktop-sidebar" hidden aria-label="Neuroport navigation">
+      <div class="desktop-brand">
+        <span class="desktop-brand-mark">N</span>
+        <span class="desktop-brand-name"><b>NEUROPORT</b><small>CYBERDECK // LINK</small></span>
+      </div>
+      <button class="desktop-home is-active" id="desktop-home" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="bevel"/></svg>
+        <span>OVERVIEW</span>
+      </button>
+      <div class="desktop-nav-caption">NEUROPORT // MODULES</div>
+      <nav class="desktop-nav-links" id="desktop-nav-links" aria-label="Apps"></nav>
+      <div class="desktop-sidebar-bottom">
+        <div class="desktop-live"><i id="desktop-link-dot"></i><span id="desktop-link-label">WAITING FOR LINK</span></div>
+        <small>LOCAL NETWORK // PRIVATE</small>
+      </div>
+    </aside>
     <div class="appbar" id="appbar" hidden>
       <button class="appbar-back" id="appbar-back" aria-label="voltar"><svg viewBox="0 0 24 24"><use href="#i-back"/></svg></button>
       <div class="appbar-title" id="appbar-title"></div>
       <div class="appbar-action" id="appbar-action"></div>
     </div>
 
-    <!-- ===== Tela inicial ===== -->
+    <!-- ===== Home screen ===== -->
     <section class="panel home" id="panel-home">
       <div class="home-clock">
         <div class="home-time" id="home-time">--:--</div>
@@ -132,7 +149,7 @@
       </button>
     </nav>
 
-    <!-- Contatos -->
+    <!-- Contacts -->
     <section class="panel" id="panel-contacts">
       <div class="panel-head">
         <span class="panel-title" data-i18n="contactsTitle"></span>
@@ -140,7 +157,7 @@
       </div>
     </section>
 
-    <!-- Veículos -->
+    <!-- Vehicles -->
     <section class="panel" id="panel-vehicles" hidden>
       <div class="panel-head">
         <span class="panel-title" data-i18n="callVehicle"></span>
@@ -192,7 +209,7 @@
       </div>
     </section>
 
-    <!-- Mapa -->
+    <!-- Map -->
     <section class="panel" id="panel-map" hidden>
       <div class="map-wrap frame" id="map-wrap">
         <canvas id="map"></canvas>
@@ -238,7 +255,7 @@
       </div>
     </section>
 
-    <!-- Diário -->
+    <!-- Journal -->
     <section class="panel" id="panel-journal" hidden>
       <div class="panel-head">
         <span class="panel-title" data-i18n="journalTitle"></span>
@@ -257,7 +274,7 @@
       </div>
     </section>
 
-    <!-- Rádio -->
+    <!-- Radio -->
     <section class="panel" id="panel-radio" hidden>
       <div class="panel-head">
         <span class="panel-title" data-i18n="radioTitle"></span>
@@ -281,6 +298,12 @@
         <div class="chat-body" id="chat-body"></div>
         <div class="chat-replies" id="chat-replies"></div>
       </div>
+      <div class="comms-empty" id="comms-empty" hidden>
+        <div class="comms-empty-mark"><svg viewBox="0 0 24 24"><use href="#i-chat"/></svg></div>
+        <span class="tag">NEUROPORT // COMMS</span>
+        <b data-i18n="commsEmptyTitle"></b>
+        <p data-i18n="commsEmptyDesc"></p>
+      </div>
     </section>
 
     <!-- ===== Internet ===== -->
@@ -293,7 +316,7 @@
       <div class="net-page" id="net-page"></div>
     </section>
 
-    <!-- ===== Câmera ===== -->
+    <!-- ===== Camera ===== -->
     <section class="panel" id="panel-camera" hidden>
       <div class="cam-flash" id="cam-flash" hidden></div>
       <div class="cam-ctrl gal-ctrl">
@@ -311,22 +334,34 @@
 
     <!-- ===== Shards (leitor) ===== -->
     <section class="panel" id="panel-shards" hidden>
-      <div class="shard-search" id="shard-search">
-        <input id="shard-q" type="search" autocomplete="off" data-i18n-ph="shardsSearch" placeholder="">
-        <span class="panel-meta" id="shard-meta"></span>
+      <div class="shard-layout" id="shard-layout">
+        <aside class="shard-sidebar" id="shard-sidebar">
+          <div class="shard-search" id="shard-search">
+            <input id="shard-q" type="search" autocomplete="off" data-i18n-ph="shardsSearch" placeholder="">
+            <span class="panel-meta" id="shard-meta"></span>
+          </div>
+          <div class="shard-savebar" id="shard-savebar">
+            <button class="btn btn-sm" id="shard-save"><svg viewBox="0 0 24 24"><use href="#i-shard"/></svg><span data-i18n="shardsSave"></span></button>
+            <button class="btn btn-sm btn-ghost" id="shard-dl"><span data-i18n="shardsDownload"></span></button>
+            <small class="dim" id="shard-save-info"></small>
+          </div>
+          <ul class="conv-list shard-list" id="shard-list"></ul>
+        </aside>
+        <section class="shard-content" id="shard-content">
+          <div class="shard-empty" id="shard-empty" hidden>
+            <div class="shard-empty-mark"><svg viewBox="0 0 24 24"><use href="#i-shard"/></svg></div>
+            <span class="tag">NEUROPORT // SHARDS</span>
+            <b data-i18n="shardsSelectTitle"></b>
+            <p data-i18n="shardsSelectDesc"></p>
+          </div>
+          <article class="shard-reader" id="shard-reader" hidden>
+            <div class="shard-tools"><span class="tag" id="shard-cat"></span>
+              <span><button class="net-btn" data-font="-1">A−</button><button class="net-btn" data-font="1">A+</button></span></div>
+            <h2 class="shard-title" id="shard-title"></h2>
+            <div class="shard-text" id="shard-text"></div>
+          </article>
+        </section>
       </div>
-      <div class="shard-savebar" id="shard-savebar">
-        <button class="btn btn-sm" id="shard-save"><svg viewBox="0 0 24 24"><use href="#i-shard"/></svg><span data-i18n="shardsSave"></span></button>
-        <button class="btn btn-sm btn-ghost" id="shard-dl"><span data-i18n="shardsDownload"></span></button>
-        <small class="dim" id="shard-save-info"></small>
-      </div>
-      <ul class="conv-list shard-list" id="shard-list"></ul>
-      <article class="shard-reader" id="shard-reader" hidden>
-        <div class="shard-tools"><span class="tag" id="shard-cat"></span>
-          <span><button class="net-btn" data-font="-1">A−</button><button class="net-btn" data-font="1">A+</button></span></div>
-        <h2 class="shard-title" id="shard-title"></h2>
-        <div class="shard-text" id="shard-text"></div>
-      </article>
     </section>
 
     <!-- ===== Ajustes ===== -->
@@ -334,7 +369,7 @@
       <div class="gigs-scroll" id="settings-list"></div>
     </section>
 
-    <!-- Modo carro (Holo Auto) -->
+    <!-- Car Mode (Holo Auto) -->
     <div class="car" id="car" hidden>
       <header class="car-top">
         <div class="car-speed"><b id="car-speed">0</b><span>KM/H</span></div>
@@ -396,7 +431,7 @@
       </div>
     </div>
 
-    <!-- Filtros do mapa -->
+    <!-- Map filters -->
     <div class="sheet-wrap" id="filters-sheet" hidden>
       <div class="sheet sheet-tall frame">
         <div class="filters-head">
@@ -429,7 +464,7 @@
       </div>
     </div>
 
-    <!-- Ficha do veículo (Garagem / El Capitan) -->
+    <!-- Vehicle details (Garage / El Capitan) -->
     <div class="sheet-wrap" id="veh-sheet" hidden>
       <div class="sheet frame veh-sheet">
         <div class="buy-img" id="vs-img"></div>
@@ -445,10 +480,10 @@
       </div>
     </div>
 
-    <!-- Foto em tela cheia -->
+    <!-- Fullscreen photo -->
     <div class="viewer" id="viewer" hidden><img id="viewer-img" alt=""><button class="btn btn-primary viewer-wall" id="viewer-wall" hidden><svg viewBox="0 0 24 24"><use href="#i-image"/></svg><span data-i18n="wallUse"></span></button></div>
 
-    <!-- Folha de missão -->
+    <!-- Job details -->
     <div class="sheet-wrap" id="quest-sheet" hidden>
       <div class="sheet frame">
         <div class="tag" id="quest-tag"></div>
@@ -468,7 +503,7 @@
       </div>
     </div>
 
-    <!-- Folha de contato -->
+    <!-- Contact details -->
     <div class="sheet-wrap" id="sheet" hidden>
       <div class="sheet frame">
         <div class="sheet-top">
@@ -513,7 +548,7 @@
       </button>
     </div>
 
-    <!-- Chamada de veículo -->
+    <!-- Vehicle call -->
     <div class="summon" id="summon" hidden>
       <div class="summon-inner">
         <div class="summon-img" id="summon-img"></div>
@@ -524,7 +559,7 @@
       </div>
     </div>
 
-    <!-- primeira abertura: estabelecendo o link de dados (pré-carrega tudo no cache) -->
+    <!-- First launch: establish the data link and preload the cache. -->
     <div class="boot" id="boot" hidden>
       <div class="boot-box">
         <div class="boot-brand">NEUROPORT</div>
@@ -536,16 +571,16 @@
       </div>
     </div>
     <div class="homebar" id="homebar"><i></i></div>
-    <!-- navegação por botões (como no Android): voltar, início, recentes -->
+    <!-- Button navigation (Android-style): back, home, recent apps -->
     <nav class="navbar" id="navbar">
       <button data-nav="back" aria-label="Voltar"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M16 5 7 12l9 7z"/></svg></button>
-      <button data-nav="home" aria-label="Início"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+      <button data-nav="home" aria-label="Home"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
       <button data-nav="recents" aria-label="Recentes"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M7 6v12M12 6v12M17 6v12"/></svg></button>
     </nav>
-    <!-- recentes: os três últimos apps -->
+    <!-- Recent apps: the last three opened apps. -->
     <div class="recents" id="recents" hidden><div class="recents-row" id="recents-row"></div></div>
 
-    <!-- Fora do jogo -->
+    <!-- Offline state -->
     <div class="offline" id="offline" hidden>
       <div class="offline-box frame">
         <div class="glitch" id="offline-title"></div>
@@ -557,7 +592,7 @@
 
   <div class="toasts" id="toasts"></div>
   <div class="headsup" id="headsup"></div>
-  <!-- enquadrar o fundo de tela -->
+  <!-- Crop the wallpaper -->
   <div class="wall-edit" id="wall-edit" hidden>
     <div class="we-img" id="we-img"></div>
     <div class="we-top"><div class="tag" data-i18n="wallAdjust"></div><small data-i18n="wallAdjustHint"></small></div>
@@ -575,7 +610,7 @@
     <div class="boot-lines"><span>KIROSHI OPTICS // NEURAL LINK</span><span>SINAPSE ESTABELECIDA</span><span>SYS.OK</span></div>
   </div>
 
-  <!-- Ícones -->
+  <!-- Icons -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-phone" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="bevel" d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4l-2 2C10.5 20.5 3.5 13.5 3 5z"/></symbol>
     <symbol id="i-hangup" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="bevel" d="M2 14.5 4 11c5-3.5 11-3.5 16 0l2 3.5-1.5 2.5-4-1.5V12a10 10 0 0 0-9 0v3.5l-4 1.5z"/></symbol>

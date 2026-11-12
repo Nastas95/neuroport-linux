@@ -1,0 +1,13 @@
+[package]
+name = "neuroport-oodle-native"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Native Linux Oodle/Kraken decompressor bridge for Neuroport"
+
+[lib]
+name = "neuroport_oodle"
+crate-type = ["cdylib"]
+
+[dependencies]
+oozextract = "=0.5.4"

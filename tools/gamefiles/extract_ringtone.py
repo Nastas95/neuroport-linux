@@ -1,11 +1,11 @@
-"""Extrai o toque de chamada do Cyberpunk 2077 (evento Wwise 'ui_phone_incoming_call')
-da instalação do jogo e salva como Ogg Opus para o Neuroport tocar no celular.
+"""Extract the Cyberpunk 2077 ringtone (Wwise event 'ui_phone_incoming_call')
+from the game installation and save it as Ogg Opus for Neuroport to play on the client.
 
-Caminho: evento (HIRC do banco) -> ação Play -> container -> Sound -> id da mídia
-         -> sfx_container.opusinfo (pacote, deslocamento, tamanho)
-         -> sfx_container_N.opuspak -> RIFF com stream Ogg Opus dentro.
+Path: event (bank HIRC) -> Play action -> container -> Sound -> media ID
+         -> sfx_container.opusinfo (package, offset, size)
+         -> sfx_container_N.opuspak -> RIFF containing an Ogg Opus stream.
 
-Uso: python tools/ringtone/extract_ringtone.py [saída.ogg] [pasta do jogo]
+Usage: python tools/ringtone/extract_ringtone.py [output.ogg] [game folder]
 """
 import os, struct, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -13,7 +13,7 @@ import rdar
 from rdar import Archive, fnv1a64
 
 EVENT = 'ui_phone_incoming_call'
-KNOWN_BANK = 0x94d354ee54e0a03f   # banco onde o evento estava no jogo 2.5/3.0 (acelera a busca)
+KNOWN_BANK = 0x94d354ee54e0a03f   # Bank used by the event in game versions 2.5/3.0 (speeds up the search).
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'ringtone', 'ringtone.ogg')
 if len(sys.argv) > 2:
     rdar.GAME = sys.argv[2]
@@ -100,13 +100,13 @@ def main():
             if media:
                 break
     if not media:
-        sys.exit('evento do toque não encontrado nos bancos de som')
+        sys.exit('ringtone event not found in audio banks')
     mid = media[0]
-    print('mídia do toque:', mid)
+    print('Ringtone media:', mid)
 
     info = arch.read(fnv1a64(r'base\sound\soundbanks\sfx_container.opusinfo'))
     magic, _ver, _z, n = struct.unpack_from('<4sIII', info, 0)
-    assert magic == b'SND ', 'opusinfo inesperado'
+    assert magic == b'SND ', 'unexpected opusinfo'
     hashes = struct.unpack_from(f'<{n}I', info, 20)
     i = hashes.index(mid)
     p = 20 + n * 4
@@ -114,18 +114,18 @@ def main():
     off = struct.unpack_from('<I', info, p + i * 4)[0]; p += n * 4
     riff = struct.unpack_from('<H', info, p + i * 2)[0]; p += n * 2
     size = struct.unpack_from('<I', info, p + i * 4)[0]
-    print(f'pacote sfx_container_{pak}.opuspak, deslocamento {off}, {size} bytes')
+    print(f'sfx_container_ package{pak}.opuspak, offset {off}, {size} bytes')
 
     data = arch.read(fnv1a64(f'base\\sound\\soundbanks\\sfx_container_{pak}.opuspak'))[off:off + size]
     ogg = data[riff:]
     if ogg[:4] != b'OggS':
         k = data.find(b'OggS')
         if k < 0:
-            sys.exit('stream Ogg não encontrado')
+            sys.exit('Ogg stream not found')
         ogg = data[k:]
     os.makedirs(os.path.dirname(os.path.abspath(OUT)), exist_ok=True)
     open(OUT, 'wb').write(ogg)
-    print('toque salvo em', os.path.abspath(OUT), f'({len(ogg)} bytes)')
+    print('ringtone saved to', os.path.abspath(OUT), f'({len(ogg)} bytes)')
 
 
 if __name__ == '__main__':
