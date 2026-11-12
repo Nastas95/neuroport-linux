@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Neuroport
+GenericName=Cyberpunk 2077 Companion Control
+Comment=Start and control Neuroport and display the phone pairing QR code
+Exec=@PYTHON@ @CONTROL_SCRIPT@ --companion @COMPANION_DIR@
+Icon=@ICON@
+Terminal=false
+Categories=Game;Utility;
+StartupNotify=true
