@@ -57,6 +57,15 @@ If the graphical installer cannot start because Tkinter is missing, `install-lin
 
 The installer uses `pkexec` for graphical authentication. If your distribution does not provide PolicyKit, install the listed dependencies with its package manager before running the installer.
 
+## Updating
+
+1. Download and extract the latest Linux release.
+2. Close Neuroport if it is running.
+3. Run `./install-linux.sh` from the extracted release directory.
+4. Select your existing Cyberpunk 2077 installation. The installer detects the existing Neuroport installation and changes the button to **Update Neuroport**.
+
+The updater replaces Neuroport's program files in place while preserving your settings, pairing information, game state and cached portraits.
+
 ## Run and pair
 
 The installer creates a desktop entry at `$XDG_DATA_HOME/applications/neuroport.desktop` (normally `~/.local/share/applications/neuroport.desktop`). It launches the installed `neuroport-control.py` control window.
