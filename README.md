@@ -1,6 +1,7 @@
 # Neuroport for Linux
 
-![Neuroport: your phone becomes V's](https://i.imgur.com/z1LaDx1.png)
+<img width="1300" height="372" alt="immagine" src="https://github.com/user-attachments/assets/d114c436-3667-4657-bfaf-e28c4218fa57" />
+
 
 **Your phone becomes V's.** Neuroport is a second-screen companion for Cyberpunk 2077: messages, calls, Night City's map, your garage, radio, shards and more, live from the game in a browser on your phone or desktop over your local network.
 
