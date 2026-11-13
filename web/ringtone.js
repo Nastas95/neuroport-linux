@@ -75,7 +75,7 @@ const Ringtone = (() => {
         if (p) p.then(() => { if (!ringing) return; if (buffer) playBuffer(); else { synthBurst(); synthTimer = setInterval(synthBurst, 1800); } });
       } else { synthBurst(); synthTimer = setInterval(synthBurst, 1800); }
     }
-    const vibe = () => { try { navigator.vibrate && navigator.vibrate([400, 200, 400]); } catch { /* ok */ } };
+    const vibe = () => { if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; try { navigator.vibrate && navigator.vibrate([400, 200, 400]); } catch { /* ok */ } };
     vibe();
     vibeTimer = setInterval(vibe, 2000);
   }

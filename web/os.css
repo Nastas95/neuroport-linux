@@ -264,6 +264,9 @@ body.app-open .action-bar { padding-bottom: 8px; }
 .set-info b { font: 400 13px var(--mono); color: #f3e3e1; }
 .chev-r { font-size: 24px; color: var(--red-dim); }
 .set-row .seg { flex: none; }
+.set-row[data-set="layout"] { flex-wrap: wrap; }
+.set-row[data-set="layout"] .set-main { flex-basis: 100%; }
+.set-row[data-set="layout"] .layout-seg { margin-left: auto; }
 
 /* ---------- Messages ---------- */
 #panel-messages { position: relative; }

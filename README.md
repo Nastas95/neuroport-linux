@@ -15,11 +15,12 @@ This repository contains the original Neuroport source layout, together with a L
 - **Quick Gig and journal:** nearby gigs and NCPD jobs; track or untrack jobs and objectives.
 - **Radio, shards and status:** stations and volume, shard reader, level, attributes and statistics.
 - **Immersive mode and camera:** hide selected HUD elements, open photo mode and browse in-game screenshots.
-- **Adaptive interface:** touch-first screens retain the mobile layout; desktop browsers use a wider dashboard, persistent navigation, side-by-side Comms and a map-first Car Mode layout.
+- **Adaptive interface:** touch-first screens retain the mobile layout; desktop browsers use a wider dashboard, persistent navigation, side-by-side Comms and a map-first Car Mode layout. Settings can force Phone, Desktop or Auto.
+- **Keep screen on:** optionally prevent the phone display from sleeping while Neuroport is open; this uses more battery.
 
 ## Requirements
 
-- Cyberpunk 2077 2.x installed through Steam and launched at least once.
+- Cyberpunk 2077 2.x installed and launched at least once. Automatic discovery covers standard Steam libraries; the installer can browse to other game folders.
 - **Cyber Engine Tweaks (CET)**: <https://www.nexusmods.com/cyberpunk2077/mods/107>
 - **RED4ext**: <https://www.nexusmods.com/cyberpunk2077/mods/2380>
 - **Codeware**: <https://www.nexusmods.com/cyberpunk2077/mods/7780>
@@ -41,7 +42,7 @@ CET, RED4ext and Codeware are separate game mods and must be installed before Ne
    ./install-linux.sh
    ```
 
-3. The graphical installer detects standard Steam libraries, lets you browse to the game folder, checks the required software and can install system packages through PolicyKit. On KDE, GNOME and other supported desktop environments, authenticate in the system prompt when package installation is requested.
+3. The graphical installer detects standard Steam libraries, lets you browse to the game folder (including non-Steam or nonstandard locations), checks the required software and can install system packages through PolicyKit. On KDE, GNOME and other supported desktop environments, authenticate in the system prompt when package installation is requested.
 4. Keep **Set up native image extraction** enabled to configure the native Rust/Pillow image decoder. The first build requires an Internet connection. You can also install Neuroport without this optional feature and configure it later.
 5. When installation finishes, open **Neuroport** from your desktop application menu. Start the server, scan the QR code with your phone and load a save in Cyberpunk 2077.
 
@@ -65,7 +66,7 @@ The installer creates a desktop entry at `$XDG_DATA_HOME/applications/neuroport.
 3. Make sure the phone and PC are on the same trusted Wi-Fi network.
 4. Load a save. The control window reports when the game is connected.
 
-The server listens on your local network and the phone pairs with a code. The local web app, fonts, QR library and map renderer are served by the companion server; the app does not require a third-party web service for normal operation.
+The server listens on your local network and the phone pairs with a code. The local web app, fonts, QR library and map renderer are served by the companion server; the app does not require a third-party web service for normal operation. If Keep screen on is enabled, the app uses the browser's Wake Lock where available and a small local muted video as a fallback for the HTTP phone connection.
 
 ## Native Linux image extraction
 

@@ -140,7 +140,7 @@
     }, 380);
   }
   // Skip: tap the screen after a few seconds.
-  setTimeout(() => { $('boot-skip').hidden = false; }, 4000);
+  setTimeout(() => { const skip = $('boot-skip'); if (skip) skip.hidden = false; }, 4000);
   $('boot-skip').addEventListener('click', () => {
     try { sessionStorage.setItem(BOOT_KEY, '1'); } catch { /* ok */ }
     el.classList.add('out');

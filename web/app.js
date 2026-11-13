@@ -44,7 +44,11 @@ function avatarHtml(c) {
 }
 function contactById(id) { return ((state && state.game && state.game.contacts) || []).find((x) => x.id === id); }
 
-function buzz(p) { if (typeof prefs !== 'undefined' && !prefs.vibrate) return; try { navigator.vibrate && navigator.vibrate(p); } catch { /* ok */ } }
+function buzz(p) {
+  if (typeof prefs !== 'undefined' && !prefs.vibrate) return;
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
+  try { navigator.vibrate && navigator.vibrate(p); } catch { /* ok */ }
+}
 const pad = (n) => String(n).padStart(2, '0');
 const game = () => (state && state.game) || {};
 

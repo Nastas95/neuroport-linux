@@ -286,6 +286,7 @@ const MIME = {
   '.webmanifest': 'application/manifest+json',
   '.glb': 'model/gltf-binary',
   '.ogg': 'audio/ogg',
+  '.mp4': 'video/mp4',
   '.woff2': 'font/woff2',
   '.bin': 'application/octet-stream',
 };
@@ -750,6 +751,13 @@ server.on('error', (e) => {
   if (e.code === 'EADDRINUSE' && process.env.NEUROPORT_RESTARTED && listenTries++ < 20) {
     setTimeout(() => server.listen(PORT, '0.0.0.0'), 300);
     return;
+  }
+  if (e.code === 'EADDRINUSE') {
+    console.log('');
+    console.log(`  !! Port ${PORT} is already in use. Neuroport may already be running in another window.`);
+    console.log('  !! Close the other instance or choose a different port with --port <number>.');
+    console.log('');
+    process.exit(1);
   }
   throw e;
 });

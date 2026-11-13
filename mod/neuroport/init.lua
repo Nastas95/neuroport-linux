@@ -6,7 +6,7 @@
 -- the affected feature stops working while the rest continues. Errors appear
 -- in the CET console and in the small "Neuroport" overlay window.
 
-local VERSION = "1.0"
+local VERSION = "1.1.1"
 local INBOX = "inbox.txt"
 local STATE = "state.json"
 

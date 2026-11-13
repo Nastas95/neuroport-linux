@@ -23,7 +23,7 @@ const OS = {
 
 // ---------- Phone preferences ----------
 const PREF_KEY = 'neuroport.prefs';
-const prefs = Object.assign({ autoCar: true, ring: true, vibrate: true, mapMode: 'active', nav: 'buttons', navSide: 'left' },
+const prefs = Object.assign({ autoCar: true, ring: true, vibrate: true, mapMode: 'active', nav: 'buttons', navSide: 'left', layout: 'auto', awake: false },
   (() => { try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch { return {}; } })());
 function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* ok */ } }
 
@@ -127,7 +127,7 @@ function updateDesktopNavActive() {
   }
 }
 function applyDeviceMode() {
-  const next = desktopMedia.matches;
+  const next = prefs.layout === 'desktop' || (prefs.layout !== 'phone' && desktopMedia.matches);
   if (deviceModeReady && next === desktopMode) return;
   desktopMode = next;
   deviceModeReady = true;
@@ -162,6 +162,55 @@ $('desktop-nav-links').addEventListener('click', (e) => {
 });
 desktopMedia.addEventListener ? desktopMedia.addEventListener('change', applyDeviceMode) : desktopMedia.addListener(applyDeviceMode);
 window.addEventListener('resize', applyDeviceMode);
+
+// ---------- Keep the phone screen awake ----------
+// Wake Lock requires HTTPS/localhost. This local muted-video fallback works
+// over Neuroport's plain HTTP connection on a home network as well.
+let wakeLock = null, wakeLockRequest = null, wakeVideo = null;
+function awakeActive() { return !!wakeLock || !!(wakeVideo && !wakeVideo.paused); }
+async function syncAwake() {
+  const want = !!prefs.awake && !document.hidden;
+  if (!want) {
+    if (wakeLock) { try { wakeLock.release(); } catch { /* ok */ } wakeLock = null; }
+    if (wakeVideo) wakeVideo.pause();
+    return;
+  }
+  if (awakeActive() || wakeLockRequest) return;
+  if (window.isSecureContext && navigator.wakeLock) {
+    let request;
+    try {
+      request = navigator.wakeLock.request('screen');
+      wakeLockRequest = request;
+      const lock = await request;
+      if (wakeLockRequest === request) wakeLockRequest = null;
+      if (!prefs.awake || document.hidden) { lock.release(); return; }
+      wakeLock = lock;
+      lock.addEventListener('release', () => { if (wakeLock === lock) wakeLock = null; });
+      return;
+    } catch {
+      if (request && wakeLockRequest === request) wakeLockRequest = null;
+      /* fall back to muted video */
+    }
+  }
+  if (!prefs.awake || document.hidden) return;
+  if (!wakeVideo) {
+    wakeVideo = document.createElement('video');
+    wakeVideo.setAttribute('playsinline', '');
+    wakeVideo.setAttribute('muted', '');
+    wakeVideo.setAttribute('aria-hidden', 'true');
+    wakeVideo.muted = true;
+    wakeVideo.loop = true;
+    wakeVideo.src = 'keep-awake.mp4';
+    wakeVideo.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;opacity:.01;pointer-events:none;z-index:-1;object-fit:cover';
+    document.body.appendChild(wakeVideo);
+  }
+  try {
+    await wakeVideo.play();
+    if (!prefs.awake || document.hidden) wakeVideo.pause();
+  } catch { /* retry after user interaction */ }
+}
+document.addEventListener('visibilitychange', syncAwake);
+document.addEventListener('pointerdown', () => { if (prefs.awake && !awakeActive()) syncAwake(); }, true);
 
 function openApp(id, opts = {}) {
   if (id === 'home') return goHome();
@@ -520,6 +569,9 @@ function renderSettings() {
     </div>` : ''}
     <div class="set-group"><div class="tag">${t('setPhone')}</div>
       ${canFullscreen() ? row('fullscreen', t('setFullscreen'), t('setFullscreenDesc'), isFullscreen()) : ''}
+      ${row('layout', t('setLayout'), t('setLayoutDesc'), false,
+        `<span class="seg layout-seg">${['auto', 'phone', 'desktop'].map((v) => `<span class="seg-b${(prefs.layout || 'auto') === v ? ' is-active' : ''}" data-layout="${v}">${t(v === 'auto' ? 'layoutAuto' : v === 'phone' ? 'layoutPhone' : 'layoutDesktop')}</span>`).join('')}</span>`)}
+      ${row('awake', t('setAwake'), t('setAwakeDesc'), !!prefs.awake)}
       ${row('autoCar', t('setAutoCar'), t('setAutoCarDesc'), prefs.autoCar)}
       ${row('ring', t('setRing'), t('setRingDesc'), prefs.ring)}
       ${row('vibrate', t('setVibrate'), t('setVibrateDesc'), prefs.vibrate)}
@@ -563,6 +615,15 @@ function immLabel(e) {
 $('settings-list').addEventListener('click', (e) => {
   if (e.target.closest('[data-fold]')) { buzz(6); immOpen = !immOpen; renderSettings(); return; }
   if (e.target.closest('[data-wpadj]')) { buzz(8); openWallEdit(); return; }
+  const layout = e.target.closest('[data-layout]');
+  if (layout) {
+    buzz(8);
+    prefs.layout = layout.dataset.layout;
+    savePrefs();
+    applyDeviceMode();
+    renderSettings();
+    return;
+  }
   const wp = e.target.closest('[data-wp]');
   if (wp) { buzz(8); setWallpaper(wp.dataset.wp || null); renderSettings(); return; }
   if (e.target.closest('[data-immall]')) {
@@ -593,6 +654,7 @@ $('settings-list').addEventListener('click', (e) => {
   else if (id === 'nav') { prefs.nav = prefs.nav === 'gestures' ? 'buttons' : 'gestures'; savePrefs(); applyNav(); }
   else if (id === 'navSide') { prefs.navSide = prefs.navSide === 'right' ? 'left' : 'right'; savePrefs(); applyNav(); }
   else if (id === 'mapMode') { prefs.mapMode = prefs.mapMode === 'all' ? 'active' : 'all'; savePrefs(); lastGigsKey = ''; renderMap(); }
+  else if (id === 'awake') { prefs.awake = !prefs.awake; savePrefs(); syncAwake(); }
   else if (id === 'forget') { if (confirm(t('setForgetDesc'))) { store(KEY_STORE, null); store('holophone.key', null); location.reload(); } return; }
   else if (id in prefs) { prefs[id] = !prefs[id]; savePrefs(); }
   renderSettings();
@@ -1189,6 +1251,7 @@ window.onAckExtra = function (a, action) {
 
 // Apply the device-specific layout before opening the home screen.
 applyDeviceMode();
+syncAwake();
 
 // Startup: open the home screen (or the app specified by the URL).
 (function bootOS() {
