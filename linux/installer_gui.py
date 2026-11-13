@@ -72,6 +72,7 @@ class NeuroportInstaller:
         game_row = ttk.Frame(game_frame, style="Panel.TFrame")
         game_row.pack(fill="x", pady=(7, 0))
         self.game_var = tk.StringVar(value=requested_game or "")
+        self.game_var.trace_add("write", lambda *_: self._refresh_install_action())
         self.game_entry = ttk.Entry(game_row, textvariable=self.game_var)
         self.game_entry.pack(side="left", fill="x", expand=True)
         ttk.Button(game_row, text="Browse…", command=self.browse_game).pack(side="left", padx=(8, 0))
@@ -126,6 +127,7 @@ class NeuroportInstaller:
         self.log_text.pack(fill="both", expand=True, pady=(7, 0))
 
         self.refresh_dependencies()
+        self._refresh_install_action()
         self.log(f"System: {platform.platform()}")
         if not self.detected_games:
             self.log("No Steam installation was detected automatically. Browse to your Cyberpunk 2077 folder.")
@@ -160,6 +162,12 @@ class NeuroportInstaller:
             self.log_text.see("end")
             self.log_text.configure(state="disabled")
         self.root.after(0, append)
+
+    def _refresh_install_action(self) -> None:
+        game = Path(self.game_var.get()).expanduser()
+        dest = game / MOD_REL
+        if hasattr(self, "install_btn"):
+            self.install_btn.configure(text="Update Neuroport" if dest.is_dir() else "Install Neuroport")
 
     def browse_game(self) -> None:
         selected = filedialog.askdirectory(title="Select the Cyberpunk 2077 folder")
@@ -318,7 +326,8 @@ class NeuroportInstaller:
         self.busy = True
         self.install_btn.configure(state="disabled")
         self.deps_btn.configure(state="disabled")
-        self.log(f"Installing Neuroport into: {game}")
+        updating = (game / MOD_REL).is_dir()
+        self.log(f"{'Updating' if updating else 'Installing'} Neuroport in: {game}")
 
         def worker() -> None:
             command = [sys.executable, str(INSTALL_SCRIPT), "--game", str(game), "--skip-native-setup"]
@@ -329,7 +338,7 @@ class NeuroportInstaller:
                 setup_script = game / MOD_REL / "companion/setup-native-image-extraction.sh"
                 self.log("Starting the native image extraction setup. The first run downloads and builds the Rust decoder.")
                 native_code = self._stream_process([str(setup_script)], cwd=setup_script.parent, timeout=1200)
-            self.root.after(0, lambda: self._installation_finished(code, native_code, setup_native))
+            self.root.after(0, lambda: self._installation_finished(code, native_code, setup_native, updating))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -359,16 +368,17 @@ class NeuroportInstaller:
             self.log(f"Could not start command: {exc}")
             return 127
 
-    def _installation_finished(self, code: int, native_code: int, native_requested: bool) -> None:
+    def _installation_finished(self, code: int, native_code: int, native_requested: bool, updating: bool) -> None:
         self.busy = False
         self.refresh_dependencies()
         self.deps_btn.configure(state="normal" if self.package_manager else "disabled")
         if code == 0:
-            message = "Neuroport was installed. Open it from your desktop application menu."
+            action = "updated" if updating else "installed"
+            message = f"Neuroport was {action}. Open it from your desktop application menu."
             if native_requested and native_code != 0:
                 message += "\n\nNative image extraction did not finish; you can retry it later from the installed companion folder."
             self.log(message)
-            messagebox.showinfo("Neuroport installed", message)
+            messagebox.showinfo(f"Neuroport {action}", message)
         else:
             self.log(f"Installation failed with exit code {code}. See the log above.")
             messagebox.showerror("Installation failed", f"The installer exited with code {code}. See the log above.")

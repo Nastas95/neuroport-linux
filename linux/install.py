@@ -9,7 +9,6 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime
 from pathlib import Path
 
 MOD_REL = Path("bin/x64/plugins/cyber_engine_tweaks/mods/neuroport")
@@ -255,12 +254,12 @@ def install(game_dir: Path, source_root: Path, *, setup_native: bool = True, log
 
     dest = game / MOD_REL
     dest.parent.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    backup = None
-    if dest.exists():
-        backup = dest.with_name(f"neuroport.backup-{stamp}")
-        shutil.copytree(dest, backup, symlinks=True)
-        log(f"Previous installation backed up to: {backup}")
+    updating = dest.is_dir()
+    if updating:
+        log(f"Existing Neuroport installation found at: {dest}")
+        log("Updating the existing installation without creating a backup.")
+    else:
+        log("No existing Neuroport installation found. Installing a new copy.")
 
     preserve_names = [
         "neuroport_settings.txt", "neuroport_capspots.txt", "state.json", "world.json",
@@ -291,7 +290,7 @@ def install(game_dir: Path, source_root: Path, *, setup_native: bool = True, log
                 except OSError:
                     pass
 
-    staging = dest.with_name(f"neuroport.installing-{stamp}")
+    staging = dest.with_name(f"{dest.name}.installing")
     if staging.exists():
         shutil.rmtree(staging)
     try:
@@ -320,13 +319,10 @@ def install(game_dir: Path, source_root: Path, *, setup_native: bool = True, log
     desktop = write_desktop_entry(companion, source_root, Path.home())
     write_user_install_info(game, companion, Path.home())
 
-    log(f"Neuroport installed in: {dest}")
+    log(f"Neuroport {'updated' if updating else 'installed'} in: {dest}")
     log(f"Control script: {companion / 'neuroport-control.py'}")
     log(f"Desktop launcher: {desktop}")
     log("Open Neuroport from your desktop application menu.")
-    if backup:
-        log(f"Previous installation backup retained at: {backup}")
-
     if setup_native:
         setup = companion / "setup-native-image-extraction.sh"
         if setup.is_file():
