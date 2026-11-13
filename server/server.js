@@ -286,7 +286,6 @@ const MIME = {
   '.webmanifest': 'application/manifest+json',
   '.glb': 'model/gltf-binary',
   '.ogg': 'audio/ogg',
-  '.mp4': 'video/mp4',
   '.woff2': 'font/woff2',
   '.bin': 'application/octet-stream',
 };

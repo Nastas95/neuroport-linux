@@ -25,6 +25,7 @@ const OS = {
 const PREF_KEY = 'neuroport.prefs';
 const prefs = Object.assign({ autoCar: true, ring: true, vibrate: true, mapMode: 'active', nav: 'buttons', navSide: 'left', layout: 'auto', awake: false },
   (() => { try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch { return {}; } })());
+if (!['auto', 'phone', 'desktop'].includes(prefs.layout)) prefs.layout = 'auto';
 function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* ok */ } }
 
 // Markers: only those currently active in the game, or the interactive map (all).
@@ -164,8 +165,11 @@ desktopMedia.addEventListener ? desktopMedia.addEventListener('change', applyDev
 window.addEventListener('resize', applyDeviceMode);
 
 // ---------- Keep the phone screen awake ----------
-// Wake Lock requires HTTPS/localhost. This local muted-video fallback works
-// over Neuroport's plain HTTP connection on a home network as well.
+// Wake Lock requires HTTPS/localhost. This muted-video fallback works over Neuroport's
+// plain HTTP connection on a home network as well. The 2 s silent clip is embedded as a
+// data: URI on purpose: iOS Safari only plays media from servers that support byte-range
+// requests, and the companion server does not, so a separate .mp4 file would not play there.
+const AWAKE_SRC = 'data:video/mp4;base64,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IGNocm9tYV9tZT0xIHRyZWxsaXM9MiA4eDhkY3Q9MCBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tNCB0aHJlYWRzPTIgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0wIHdlaWdodHA9MCBrZXlpbnQ9MjUwIGtleWludF9taW49MSBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTYwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMjAAgAAAABtliIIC+c///4eigACrz5OTk6666666666668ABGCAHARggBwEYIAcBGCAHARggBwEYIAcBGCAHARggBwAAAAdBmhwF85wjARggBwEYIAcBGCAHARggBwEYIAcBGCAHARggBwEYIAc=';
 let wakeLock = null, wakeLockRequest = null, wakeVideo = null;
 function awakeActive() { return !!wakeLock || !!(wakeVideo && !wakeVideo.paused); }
 async function syncAwake() {
@@ -200,7 +204,7 @@ async function syncAwake() {
     wakeVideo.setAttribute('aria-hidden', 'true');
     wakeVideo.muted = true;
     wakeVideo.loop = true;
-    wakeVideo.src = 'keep-awake.mp4';
+    wakeVideo.src = AWAKE_SRC;
     wakeVideo.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;opacity:.01;pointer-events:none;z-index:-1;object-fit:cover';
     document.body.appendChild(wakeVideo);
   }
@@ -649,6 +653,11 @@ $('settings-list').addEventListener('click', (e) => {
   if (!b) return;
   buzz(10);
   const id = b.dataset.set;
+  if (id === 'layout') {
+    const order = ['auto', 'phone', 'desktop'];
+    prefs.layout = order[(order.indexOf(prefs.layout) + 1) % order.length];
+    savePrefs(); applyDeviceMode(); renderSettings(); return;
+  }
   if (id === 'immersive') cmd(game().immersive ? 'immersive_off' : 'immersive_on');
   else if (id === 'fullscreen') toggleFullscreen();
   else if (id === 'nav') { prefs.nav = prefs.nav === 'gestures' ? 'buttons' : 'gestures'; savePrefs(); applyNav(); }
