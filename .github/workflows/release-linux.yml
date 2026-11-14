@@ -1,0 +1,79 @@
+name: Package Linux release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: package-linux-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  package-linux:
+    if: ${{ github.event.release.prerelease == false }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+
+      - name: Download generated assets from the previous Linux release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
+          seed_url="$(python3 - "$RUNNER_TEMP/releases.json" <<'PY'
+          import json
+          import os
+          import sys
+
+          current_tag = os.environ["RELEASE_TAG"]
+          with open(sys.argv[1], encoding="utf-8") as source:
+              releases = json.load(source)
+          for release in releases:
+              if release.get("draft") or release.get("prerelease") or release.get("tag_name") == current_tag:
+                  continue
+              for asset in release.get("assets", []):
+                  name = asset.get("name", "")
+                  url = asset.get("browser_download_url", "")
+                  if name.startswith("Neuroport-Linux-") and name.endswith("-Release.zip") and url:
+                      print(url)
+                      raise SystemExit(0)
+          PY
+          )"
+          if [[ -z "$seed_url" ]]; then
+            echo "No earlier published Neuroport Linux release ZIP was found; refusing to build an incomplete package." >&2
+            exit 1
+          fi
+          case "$seed_url" in
+            "https://github.com/${GITHUB_REPOSITORY}/releases/download/"*) ;;
+            *) echo "Unexpected seed URL: $seed_url" >&2; exit 1 ;;
+          esac
+          curl --fail --show-error --location --retry 3 "$seed_url" --output "$RUNNER_TEMP/previous-release.zip"
+
+      - name: Build and verify the installable ZIP
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python3 tools/package-linux.py \
+            --version "$RELEASE_TAG" \
+            --seed-zip "$RUNNER_TEMP/previous-release.zip" \
+            --output-dir dist
+          ls -lh "dist/Neuroport-Linux-${RELEASE_TAG}-Release.zip"
+
+      - name: Attach ZIP to the published GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            "dist/Neuroport-Linux-${RELEASE_TAG}-Release.zip" \
+            --clobber
