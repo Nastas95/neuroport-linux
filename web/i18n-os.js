@@ -10,7 +10,7 @@ Object.assign(I18N.en, {
   cantReply: 'This contact cannot be replied to', noReplies: 'No reply available right now',
   // Settings
   setGame: 'IN GAME', setImmersive: 'Immersive mode',
-  setImmersiveDesc: 'Hides the game minimap/GPS markers and blocks the game keys for radio, autodrive and calling vehicles — everything goes through Neuroport.',
+  setImmersiveDesc: 'Temporarily hides selected game interface elements. Native vehicle, radio and autodrive controls remain available.',
   setPhone: 'PHONE', setFullscreen: 'Full screen', setFullscreenDesc: 'Hide the browser bars. Also on the button at the top right.',
   setLayout: 'Layout', setLayoutDesc: 'Auto follows the screen size. Choose Phone or Desktop to force a layout.',
   layoutAuto: 'AUTO', layoutPhone: 'PHONE', layoutDesktop: 'DESKTOP',

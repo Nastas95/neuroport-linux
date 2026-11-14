@@ -2184,22 +2184,7 @@ local function registerOverrides()
     overrides[cls .. "." .. fn] = ok
     if not ok then warnOnce("override_" .. fn, err) end
   end
-  ov("QuickSlotsManager", "SummonActiveVehicle", function(self, force, wrapped)
-    if immersive then return end
-    return wrapped(force)
-  end)
-  ov("QuickSlotsManager", "SummonVehicle", function(self, force, vtype, veh, road, wrapped)
-    if immersive then return end
-    return wrapped(force, vtype, veh, road)
-  end)
-  ov("PocketRadio", "HandleInputAction", function(self, action, wrapped)
-    if immersive then return end
-    return wrapped(action)
-  end)
-  ov("AutoDriveSystem", "OnAction", function(self, action, consumer, wrapped)
-    if immersive then return false end
-    return wrapped(action, consumer)
-  end)
+  -- Do not intercept native vehicle, radio, or autodrive input.
   -- HUD job objective: retain the controller and hide it when no job is tracked.
   probe.trackerHook = {}
   local OBS = ObserveAfter or Observe
