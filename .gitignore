@@ -3,7 +3,6 @@ web/map3d/
 web/mapicons/
 web/avatars/
 web/ringtone/*.ogg
-web/icons/autofixer*.png
 tools/gamefiles/atlas_index.json
 
 # Third-party tools downloaded separately
